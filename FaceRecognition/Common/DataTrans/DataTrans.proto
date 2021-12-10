@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+message DataTrans {
+    StreamDataTrans streamData = 1;
+    FrameDetectDataTrans frameDetectInfo = 2;
+    FaceAttributeDataTrans faceInfo = 3;
+    RegistFaceInfoDataTrans registFace = 4;
+    RegistResult regResult = 5;
+}
+
+message FrameInfoTrans {
+    int64 frameId = 1;
+    int64 startTime = 2;
+    int32 mode = 3;
+    int32 format = 4;
+    int32 channelId = 5;
+    int32 isEos = 6;
+    int32 isDisplay = 7;
+    int32 width = 8;
+    int32 height = 9;
+}
+
+message StreamDataTrans {
+    FrameInfoTrans info = 1;
+    int32 dataSize = 2;
+    bytes data = 3;
+}
+
+message FrameDetectDataTrans {
+    int32 channelId = 1;
+    int64 frameId = 2;
+    repeated FaceInfoDataTrans faces = 3;
+}
+
+message FaceInfoDataTrans {
+    int32 trackId = 1;
+    RectDataTrans rect = 2;
+}
+
+message RectDataTrans
+{
+    float left = 1;
+    float top = 2;
+    float height = 3;
+    float width = 4;
+}
+
+message PictureDataTrans {
+    int32 width = 1;
+    int32 height = 2;
+    int32 dataSize = 3;
+    bytes data = 4;
+}
+
+message FaceAttributeDataTrans {
+    int32 channelId = 1;
+    int64 frameId = 2;
+    int32 trackId = 3;
+    string name = 4;
+    string gender = 5;
+    int32 age = 6;
+    string mask = 7;
+    float similarity = 8;
+    PictureDataTrans avatar = 9;
+}
+
+message RegistFaceInfoDataTrans {
+    string uuid = 1;
+    PictureDataTrans avatar = 2;
+}
+
+message RegistResult {
+    int32 errCode = 1;    // 0 is success
+    string msg = 2;
+}

@@ -1,0 +1,8 @@
+PersonCount = 1
+
+#ImagePath, Name, Gender, Age, these are required or will not be able to register
+Person0.ImagePath = ./pic/reg/reg0/BradPitt.jpg
+Person0.Name = brad pitt
+Person0.Gender = male
+Person0.Age = 50
+
