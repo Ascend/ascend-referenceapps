@@ -1,0 +1,1 @@
+# Please download imagenet1000_clsidx_to_labels.txt from the link provided by README
