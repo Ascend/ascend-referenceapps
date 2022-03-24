@@ -4,7 +4,11 @@
 
 https://github.com/KaimingHe/deep-residual-networks/blob/master/prototxt/ResNet-50-deploy.prototxt
 
-#### Pre-trained Model Link:
+##### ImageNet lable txt(imagenet1000_clsidx_to_labels) link
+
+https://gist.githubusercontent.com/yrevar/942d3a0ac09ec9e5eb3a/raw/238f720ff059c1f82f368259d1ca4ffa5dd8f9f5/imagenet1000_clsidx_to_labels.txt
+
+##### Pre-trained Model Link:
 
 https://onedrive.live.com/?authkey=%21AAFW2-FVoxeVRck&id=4006CBB8476FF777%2117887&cid=4006CBB8476FF777
 
@@ -29,3 +33,4 @@ atc --singleop single_op/op_list.json --output ./single_op --soc_version=Ascend3
 
 - Atlas 800 (Model 3000)
 - Atlas 300 (Model 3010)
+
