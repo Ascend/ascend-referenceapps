@@ -29,9 +29,6 @@ export FFMPEG_PATH=/usr/local/ffmpeg
 
 SAMPLE_FOLDER=(
     ../ApiSamples/Samples/
-    ../IdRecognition/
-    ../FaceRecognition/
-    ../SceneTextRecognition/
 )
 
 err_flag=0
