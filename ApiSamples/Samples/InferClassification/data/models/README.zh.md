@@ -10,6 +10,12 @@ https://www.huaweicloud.com/ascend/resources/modelzoo/Models/7548422b6b9c4a80911
 
 在该地址下载pb文件``resnet_v1_50.pb``
 
+### 模型后处理标签文件(imagenet1000_clsidx_to_labels) 
+
+https://gist.githubusercontent.com/yrevar/942d3a0ac09ec9e5eb3a/raw/238f720ff059c1f82f368259d1ca4ffa5dd8f9f5/imagenet1000_clsidx_to_labels.txt
+
+下载后放置在目录resent下
+
 ## 依赖
 
 可根据需求修改模型的aipp配置文件

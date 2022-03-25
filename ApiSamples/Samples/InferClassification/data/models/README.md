@@ -10,6 +10,12 @@ https://www.huaweicloud.com/ascend/resources/modelzoo/Models/7548422b6b9c4a80911
 
 Download the pb configuration file ``resnet_v1_50.pb`` from this link
 
+##### ImageNet lable txt(imagenet1000_clsidx_to_labels) link
+
+https://gist.githubusercontent.com/yrevar/942d3a0ac09ec9e5eb3a/raw/238f720ff059c1f82f368259d1ca4ffa5dd8f9f5/imagenet1000_clsidx_to_labels.txt
+
+Download imagenet1000_clsidx_to_labels.txt and place it under the directory resent
+
 ## Dependency
 
 https://support.huawei.com/enterprise/en/doc/EDOC1100150947/c57da3db/configuration-file-template
