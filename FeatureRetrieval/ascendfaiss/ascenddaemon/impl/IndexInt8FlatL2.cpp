@@ -226,7 +226,7 @@ void IndexInt8FlatL2::resetDistCompOp(int codeNum)
         std::vector<int64_t> coarseCentroidsShape({ utils::divUp(codeNum, CUBE_ALIGN),
             utils::divUp(dims, CUBE_ALIGN_INT8), CUBE_ALIGN, (int64_t)CUBE_ALIGN_INT8 });
         std::vector<int64_t> preNormsShape({ codeNum });
-        std::vector<int64_t> sizeShape({CORE_NUM, SIZE_ALIGN_SIZE});
+        std::vector<int64_t> sizeShape({ CORE_NUM, SIZE_ALIGN_SIZE });
         std::vector<int64_t> distResultShape({ batch, codeNum });
         std::vector<int64_t> minResultShape({ batch, this->burstsOfComputeBatch });
         std::vector<int64_t> flagShape({ FLAG_NUM, FLAG_ALIGN_SIZE });
