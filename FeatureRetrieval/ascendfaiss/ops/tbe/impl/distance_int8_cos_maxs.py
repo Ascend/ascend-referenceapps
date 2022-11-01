@@ -277,24 +277,24 @@ class DistanceInt8CosMaxs:
                     self.input_mask_gm[j * self.mask_len
                                        + (self.mask_offset + aicore_move_offset + centroids_move_offset) // 8],
                     0, 1, (self.centroids_num_each_loop + 255) // 256, 8, 8)
-            
-            # cal the loop need to execute the selection process
-            vsel_loop = self.centroids_num_each_loop // self.fp16_mask
-            if vsel_loop > 0:
-                for vloop in range(vsel_loop):
-                    # sel_ub can not use repeat times > 1, use for + offset
-                    voffset = vloop * self.fp16_mask
-                    # select value in res_ub according to sel_ub
-                    self.tik_instance.vec_sel(self.fp16_mask, 0, res_ub[j, voffset],
-                                              sel_ub[j, voffset // 8], res_ub[j, voffset],
-                                              min_val_ub, 1, 8, 8, 0)
-                    
-                    # handle tail in case of self.centroids_num_each_loop % self.fp16_mask != 0
-                    vsel_last = self.centroids_num_each_loop % self.fp16_mask
-                    if vsel_last > 0:
-                        vsel_offset = vsel_loop * self.fp16_mask
-                        self.tik_instance.vec_sel(vsel_last, 0, res_ub[j, vsel_offset], sel_ub[j, vsel_offset // 8],
-                                                  res_ub[j, vsel_offset], min_val_ub, 1, 8, 8, 0)   
+ 
+                # cal the loop need to execute the selection process
+                vsel_loop = self.centroids_num_each_loop // self.fp16_mask
+                if vsel_loop > 0:
+                    for vloop in range(vsel_loop):
+                        # sel_ub can not use repeat times > 1, use for + offset
+                        voffset = vloop * self.fp16_mask
+                        # select value in res_ub according to sel_ub
+                        self.tik_instance.vec_sel(self.fp16_mask, 0, res_ub[j, voffset],
+                                                  sel_ub[j, voffset // 8], res_ub[j, voffset],
+                                                  min_val_ub, 1, 8, 8, 0)
+ 
+                # handle tail in case of self.centroids_num_each_loop % self.fp16_mask != 0
+                vsel_last = self.centroids_num_each_loop % self.fp16_mask
+                if vsel_last > 0:
+                    vsel_offset = vsel_loop * self.fp16_mask
+                    self.tik_instance.vec_sel(vsel_last, 0, res_ub[j, vsel_offset], sel_ub[j, vsel_offset // 8],
+                                              res_ub[j, vsel_offset], min_val_ub, 1, 8, 8, 0)   
 
         self.tik_instance.data_move(self.output_distances_gm[0, aicore_move_offset + centroids_move_offset],
                                     res_ub,
