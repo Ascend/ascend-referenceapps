@@ -222,11 +222,11 @@ void IndexInt8FlatL2::resetDistCompOp(int codeNum)
     auto distCompOpReset = [&](std::unique_ptr<AscendOperator> &op, int64_t batch) {
         AscendOpDesc desc("DistanceInt8L2Mins");
         std::vector<int64_t> queryShape({ batch, dims });
-        std::vector<int64_t> maskShape({ batch, utils::divUp(codeNum,8) });
+        std::vector<int64_t> maskShape({ batch, utils::divUp(codeNum, 8) });
         std::vector<int64_t> coarseCentroidsShape({ utils::divUp(codeNum, CUBE_ALIGN),
             utils::divUp(dims, CUBE_ALIGN_INT8), CUBE_ALIGN, (int64_t)CUBE_ALIGN_INT8 });
         std::vector<int64_t> preNormsShape({ codeNum });
-        std::vector<int64_t> sizeShape({ CORE_NUM, SIZE_ALIGN_SIZE });
+        std::vector<int64_t> sizeShape({CORE_NUM, SIZE_ALIGN_SIZE});
         std::vector<int64_t> distResultShape({ batch, codeNum });
         std::vector<int64_t> minResultShape({ batch, this->burstsOfComputeBatch });
         std::vector<int64_t> flagShape({ FLAG_NUM, FLAG_ALIGN_SIZE });
