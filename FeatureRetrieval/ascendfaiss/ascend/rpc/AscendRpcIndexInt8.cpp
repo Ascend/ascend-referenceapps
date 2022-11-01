@@ -72,6 +72,44 @@ RpcError RpcIndexInt8Search(rpcContext ctx, int indexId, int n, int dim, int k, 
     return RPC_ERROR_NONE;
 }
 
+RpcError RpcIndexInt8SearchFilter(rpcContext ctx, int indexId, int n, int dim, int k, const int8_t *query,
+	uint16_t *distance, uint32_t *label, int maskSize, const uint8_t *mask)
+{
+    HdcSession *session = static_cast<HdcSession *>(ctx);
+    RPC_REQUIRE_NOT_NULL(session);
+    RPC_REQUIRE_NOT_NULL(query);
+    RPC_REQUIRE_NOT_NULL(distance);
+    RPC_REQUIRE_NOT_NULL(label);
+
+    IndexInt8SearchFilterRequest req;
+    IndexInt8SearchResponse resp;
+    req.set_indexid(indexId);
+    req.set_n(n);
+    req.set_dim(dim);
+    req.set_k(k);
+    req.set_query(query, n * dim * sizeof(int8_t));
+    req.set_mask(mask, n * maskSize * sizeof(uint8_t));
+
+    HdcRpcError ret = session->SendAndReceive(RPC_INDEX_INT8_SEARCH_FILTER, req, resp);
+    if (ret != HDC_RPC_ERROR_NONE || resp.result().err() != CommonResponse_ErrorCode_OK) {
+        return RPC_ERROR_ERROR;
+    }
+
+    RPC_ASSERT(resp.distance().size() == static_cast<size_t>(n) * static_cast<size_t>(k) * sizeof(uint16_t));
+    RPC_ASSERT(resp.label().size() == static_cast<size_t>(n) * static_cast<size_t>(k) * sizeof(uint32_t));
+    
+	errno_t err = memcpy_s(distance, resp.distance().size(), resp.distance().data(), resp.distance().size());
+    if (err != EOK) {
+        return RPC_ERROR_ERROR;
+    }
+    err = memcpy_s(label, resp.label().size(), resp.label().data(), resp.label().size());
+    if (err != EOK) {
+        return RPC_ERROR_ERROR;
+    }
+
+    return RPC_ERROR_NONE;
+}
+
 RpcError RpcIndexInt8RemoveIds(rpcContext ctx, int indexId, int n, uint32_t *ids, uint32_t *numRemoved)
 {
     RPC_LOG_INFO("remove %d vector(s) of index %d on ctx %p\n", n, indexId, ctx);

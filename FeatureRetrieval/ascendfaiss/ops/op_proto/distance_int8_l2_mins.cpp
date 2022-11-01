@@ -23,10 +23,10 @@ namespace ge {
 IMPLEMT_VERIFIER(DistanceInt8L2Mins, DistanceInt8L2MinsVerify)
 {
     DataType inputTypeX0 = op.GetInputDesc("x0").GetDataType();
-    DataType inputTypeX1 = op.GetInputDesc("x1").GetDataType();
     DataType inputTypeX2 = op.GetInputDesc("x2").GetDataType();
     DataType inputTypeX3 = op.GetInputDesc("x3").GetDataType();
-    if ((inputTypeX0 != inputTypeX1) || (inputTypeX2 != DT_INT32) || (inputTypeX3 != DT_UINT32)) {
+    DataType inputTypeX4 = op.GetInputDesc("x4").GetDataType();
+    if ((inputTypeX0 != inputTypeX2) || (inputTypeX3 != DT_INT32) || (inputTypeX4 != DT_UINT32)) {
         return GRAPH_FAILED;
     }
     return GRAPH_SUCCESS;
@@ -39,17 +39,17 @@ IMPLEMT_COMMON_INFERFUNC(DistanceInt8L2MinsInferShape)
     Format inputFormat = op.GetInputDesc("x0").GetFormat();
 
     Shape x0_shape = op.GetInputDesc("x0").GetShape();
-    Shape x2_shape = op.GetInputDesc("x2").GetShape();
+    Shape x3_shape = op.GetInputDesc("x3").GetShape();
     TensorDesc OutputDesc0 = op.GetOutputDesc("y0");
     TensorDesc OutputDesc1 = op.GetOutputDesc("y1");
     TensorDesc OutputDesc2 = op.GetOutputDesc("y2");
 
     std::vector<int64_t> dimsX0 = x0_shape.GetDims();
-    std::vector<int64_t> dimsX2 = x2_shape.GetDims();
+    std::vector<int64_t> dimsX3 = x3_shape.GetDims();
 
     std::vector<int64_t> dimY;
     dimY.push_back(dimsX0[0]);
-    dimY.push_back(dimsX2[0]);
+    dimY.push_back(dimsX3[0]);
 
     ge::Shape outputShape0 = ge::Shape(dimY);
 
@@ -60,7 +60,7 @@ IMPLEMT_COMMON_INFERFUNC(DistanceInt8L2MinsInferShape)
 
     std::vector<int64_t> dimMinY;
     dimMinY.push_back(dimsX0[0]);
-    dimMinY.push_back((dimsX2[0] + 63) / 64 * 2); // ( ... + 63) / 64 for align, 2 sizeof of fp16
+    dimMinY.push_back((dimsX3[0] + 63) / 64 * 2); // ( ... + 63) / 64 for align, 2 sizeof of fp16
 
     ge::Shape outputShape1 = ge::Shape(dimMinY);
 
@@ -69,7 +69,7 @@ IMPLEMT_COMMON_INFERFUNC(DistanceInt8L2MinsInferShape)
     OutputDesc1.SetFormat(inputFormat);
     op.UpdateOutputDesc("y1", OutputDesc1);
 
-    std::vector<int64_t> dimVec1 { 32 }; // 32 is shape of output 2
+    std::vector<int64_t> dimVec1 { 16, 16 };
     ge::Shape outputShape2 = ge::Shape(dimVec1);
 
     OutputDesc2.SetShape(outputShape2);

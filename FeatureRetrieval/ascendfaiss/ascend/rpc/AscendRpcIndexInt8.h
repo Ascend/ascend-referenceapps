@@ -28,6 +28,9 @@ RpcError RpcDestroyIndexInt8(rpcContext ctx, int indexId);
 RpcError RpcIndexInt8Search(rpcContext ctx, int indexId, int n, int dim, int k,
     const int8_t *query, uint16_t *distance, uint32_t *label);
 
+RpcError RpcIndexInt8SearchFilter(rpcContext ctx, int indexId, int n, int dim, int k,
+    const int8_t *query, uint16_t *distance, uint32_t *label, int maskSize, const uint8_t *mask);
+
 // remove ids
 RpcError RpcIndexInt8RemoveIds(rpcContext ctx, int indexId, int n, uint32_t *ids, uint32_t *numRemoved);
 

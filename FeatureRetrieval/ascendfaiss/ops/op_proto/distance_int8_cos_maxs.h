@@ -21,11 +21,12 @@
 
 namespace ge {
     REG_OP(DistanceInt8CosMaxs)
-        .INPUT(x0, TensorType({ DT_INT8 })) /* "First operand." */
-        .INPUT(x1, TensorType({ DT_INT8 }))   /* "Second operand." */
-        .INPUT(x2, TensorType({ DT_FLOAT16 }))   /* "Third operand." */
-        .INPUT(x3, TensorType({ DT_FLOAT16 })) /* "Fourth operand." */
-        .INPUT(x4, TensorType({ DT_UINT32 })) /* "Fifth operand." */
+        .INPUT(x0, TensorType({ DT_INT8 }))
+        .INPUT(x1, TensorType({ DT_UINT8 }))
+        .INPUT(x2, TensorType({ DT_INT8 }))
+        .INPUT(x3, TensorType({ DT_FLOAT16 }))
+        .INPUT(x4, TensorType({ DT_FLOAT16 }))
+        .INPUT(x5, TensorType({ DT_UINT32 }))
         /* "Result, has same element type as three inputs" */
         .OUTPUT(y0, TensorType({ DT_FLOAT16 }))
         .OUTPUT(y1, TensorType({ DT_FLOAT16 }))

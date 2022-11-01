@@ -34,7 +34,13 @@ def arg_parse():
     parser = argparse.ArgumentParser(
         description='generate aicore operator model')
 
-    parser.add_argument("-d",
+    parser.add_argument("--cores",
+                        dest='core_num',
+                        default=2,
+                        type=int,
+                        help="Core number")
+	
+	parser.add_argument("-d",
                         dest='dim',
                         default=512,
                         type=int,
@@ -45,11 +51,17 @@ def arg_parse():
                         default=16384,
                         type=int,
                         help="Code size for compute norm")
+	
+	parser.add_argument("-p",
+                        dest='process_id',
+                        default='0',
+                        type=str,
+                        help="Number of process_id")
 
     return parser.parse_args()
 
 
-def generate_distance_int8_cos_maxs_json(query_num, dim, centroid_num, file_path):
+def generate_distance_int8_cos_maxs_json(core_num, query_num, dim, file_path):
     # write dist_int8_cos_maxs json
     int8_cos_maxs_obj = [{
         "op":
@@ -60,59 +72,23 @@ def generate_distance_int8_cos_maxs_json(query_num, dim, centroid_num, file_path
             "type": "int8"
         }, {
             "format": "ND",
-            "shape": [centroid_num // 16, dim // 32, 16, 32],
-            "type": "int8"
+            "shape": [query_num, (code_num + 7) // 8],
+            "type": "uint8"
         }, {
+			"format": "ND",
+			"shape": [code_num // 16, dim // 32, 16, 32],
+			"type": "int8"
+		}, {
             "format": "ND",
             "shape": [(query_num + 15) // 16 * 16],
             "type": "float16"
         }, {
             "format": "ND",
-            "shape": [centroid_num],
-            "type": "float16"
-        }, {
-            "format": "ND",
-            "shape": [8],
-            "type": "uint32"
-        }],
-        "output_desc": [{
-            "format": "ND",
-            "shape": [query_num, centroid_num],
-            "type": "float16"
-        }, {
-            "format": "ND",
-            "shape": [query_num, (centroid_num + 63) // 64 * 2],
-            "type": "float16"
-        }, {
-            "format": "ND",
-            "shape": [32],
-            "type": "uint16"
-        }]
-    }]
-
-    utils.generate_op_config(int8_cos_maxs_obj, file_path)
-
-
-def generate_distance_int8_l2_mins_json(query_num, dim, code_num, file_path):
-    # write dist_compute_int8_l2_mins json
-    int8_l2_mins_obj = [{
-        "op":
-            "DistanceInt8L2Mins",
-        "input_desc": [{
-            "format": "ND",
-            "shape": [query_num, dim],
-            "type": "int8"
-        }, {
-            "format": "ND",
-            "shape": [code_num // 16, dim // 32, 16, 32],
-            "type": "int8"
-        }, {
-            "format": "ND",
             "shape": [code_num],
-            "type": "int32"
+            "type": "float16"
         }, {
             "format": "ND",
-            "shape": [8],
+            "shape": [core_num, 8],
             "type": "uint32"
         }],
         "output_desc": [{
@@ -125,7 +101,51 @@ def generate_distance_int8_l2_mins_json(query_num, dim, code_num, file_path):
             "type": "float16"
         }, {
             "format": "ND",
-            "shape": [32],
+            "shape": [16, 16],
+            "type": "uint16"
+        }]
+    }]
+
+    utils.generate_op_config(int8_cos_maxs_obj, file_path)
+
+
+def generate_distance_int8_l2_mins_json(core_num, query_num, dim, file_path):
+    # write dist_int8_l2_mins json
+    int8_l2_mins_obj = [{
+        "op":
+            "DistanceInt8L2Mins",
+        "input_desc": [{
+            "format": "ND",
+            "shape": [query_num, dim],
+            "type": "int8"
+        }, {
+            "format": "ND",
+            "shape": [query_num, (code_num + 7) // 8],
+            "type": "uint8"
+        }, {
+			"format": "ND",
+			"shape": [code_num // 16, dim // 32, 16, 32],
+			"type": "int8"
+        }, {
+            "format": "ND",
+            "shape": [code_num],
+            "type": "int32"
+        }, {
+            "format": "ND",
+            "shape": [core_num, 8],
+            "type": "uint32"
+        }],
+        "output_desc": [{
+            "format": "ND",
+            "shape": [query_num, code_num],
+            "type": "float16"
+        }, {
+            "format": "ND",
+            "shape": [query_num, (code_num + 63) // 64 * 2],
+            "type": "float16"
+        }, {
+            "format": "ND",
+            "shape": [16, 16],
             "type": "uint16"
         }]
     }]
@@ -133,26 +153,26 @@ def generate_distance_int8_l2_mins_json(query_num, dim, code_num, file_path):
     utils.generate_op_config(int8_l2_mins_obj, file_path)
 
 
-def generate_int8_offline_model(dim, work_dir='.'):
+def generate_int8_offline_model(process_id, core_num, dim, work_dir='.'):
     config_path = utils.get_config_path(work_dir)
 
-    int8_l2_mins_op_name = "int8_flat_l2_mins_op{}"
-    int8_cos_maxs_op_name = "int8_flat_cos_maxs_op{}"
+    int8_l2_mins_op_name = "int8_flat_l2_mins_op{}_pid{}"
+    int8_cos_maxs_op_name = "int8_flat_cos_maxs_op{}_pid{}"
     search_page_sizes = (48, 36, 32, 24, 18, 16, 12, 8, 6, 4, 2, 1)
 
     try:
         for page_size in search_page_sizes:
-            op_name_ = int8_l2_mins_op_name.format(page_size)
+            op_name_ = int8_l2_mins_op_name.format(page_size, process_id)
             file_path_ = os.path.join(config_path, '%s.json' % op_name_)
-            generate_distance_int8_l2_mins_json(page_size, dim, code_num, file_path_)
+            generate_distance_int8_l2_mins_json(core_num, page_size, dim, file_path_)
             utils.atc_model(op_name_)
 
-            op_name_ = int8_cos_maxs_op_name.format(page_size)
+            op_name_ = int8_cos_maxs_op_name.format(page_size, process_id)
             file_path_ = os.path.join(config_path, '%s.json' % op_name_)
-            generate_distance_int8_cos_maxs_json(page_size, dim, code_num, file_path_)
+            generate_distance_int8_cos_maxs_json(core_num, page_size, dim, file_path_)
             utils.atc_model(op_name_)
 
-        op_name_ = "int8_l2_norm_d{}".format(dim)
+        op_name_ = "int8_l2_norm_d{}_pid{}".format(dim, process_id)
         file_path_ = os.path.join(config_path, '%s.json' % op_name_)
         utils.get_int8_l2_norm_json(norm_code_num, dim, file_path_)
         utils.atc_model(op_name_)
@@ -169,6 +189,8 @@ if __name__ == '__main__':
     utils.set_env()
 
     args = arg_parse()
+	core_num = args.core_num
     dim = args.dim
+	process_id = args.process_id
 
-    generate_int8_offline_model(dim)
+    generate_int8_offline_model(process_id, core_num, dim)

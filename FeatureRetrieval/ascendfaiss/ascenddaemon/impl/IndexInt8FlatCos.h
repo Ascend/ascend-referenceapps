@@ -41,13 +41,14 @@ protected:
     void searchImpl(int n, const int8_t *x, int k, float16_t *distances, idx_t *labels) override;
 
     void runDistCompute(AscendTensor<int8_t, DIMS_2> &queryVecs,
+                        AscendTensor<uint8_t, DIMS_2> &mask,
                         AscendTensor<int8_t, DIMS_4> &shapedData,
                         AscendTensor<float16_t, DIMS_1> &queriesNorm,
                         AscendTensor<float16_t, DIMS_1> &codesNorm,
-                        AscendTensor<uint32_t, DIMS_1> &size,
+                        AscendTensor<uint32_t, DIMS_2> &size,
                         AscendTensor<float16_t, DIMS_2> &outDistances,
                         AscendTensor<float16_t, DIMS_2> &outMinDistances,
-                        AscendTensor<uint16_t, DIMS_1> &flag, aclrtStream stream);
+                        AscendTensor<uint16_t, DIMS_2> &flag, aclrtStream stream);
 
     void resetDistCompOp(int codeNum);
 

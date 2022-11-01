@@ -33,7 +33,9 @@ IndexInt8::IndexInt8(idx_t d, MetricType metric, int resourceSize)
     : dims(d), 
       ntotal(0), 
       metricType(metric),
-      isTrained(false)
+      isTrained(false),
+	  maskData(nullptr),
+      maskSearchedOffset(0)
 {
     if (resourceSize == 0) {
         resources.noTempMemory();
@@ -97,7 +99,7 @@ size_t IndexInt8::removeIds(const IDSelector &sel)
     return removeIdsImpl(sel);
 }
 
-void IndexInt8::search(idx_t n, const int8_t *x, idx_t k, float16_t *distances, idx_t *labels)
+void IndexInt8::search(idx_t n, const int8_t *x, idx_t k, float16_t *distances, idx_t *labels, uint8_t *mask)
 {
     ASCEND_THROW_IF_NOT_MSG(x, "x can not be nullptr");
     ASCEND_THROW_IF_NOT_MSG(distances, "distance can not be nullptr");
@@ -109,6 +111,9 @@ void IndexInt8::search(idx_t n, const int8_t *x, idx_t k, float16_t *distances, 
     if (n == 0 || k == 0) {
         return;
     }
+
+	this->maskData = mask;
+	this->maskSearchedOffset = 0;
 
     return searchPaged(n, x, k, distances, labels);
 }

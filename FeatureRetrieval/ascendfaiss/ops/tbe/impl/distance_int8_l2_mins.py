@@ -22,6 +22,7 @@ from te import tik
 class DistanceInt8L2Mins:
     def __init__(self,
                  input_queries,
+                 input_mask,
                  input_centroids,
                  input_precomputed,
                  input_actual_num,
@@ -31,6 +32,8 @@ class DistanceInt8L2Mins:
                  kernel_name="distance_int8_l2_mins"):
         self.shape_queries = input_queries.get("shape")
         self.dtype_queries = input_queries.get("dtype")
+		self.shape_mask = input_mask.get("shape")
+        self.dtype_mask = input_mask.get("dtype")
         self.shape_centroids = input_centroids.get("shape")
         self.dtype_centroids = input_centroids.get("dtype")
         self.shape_precomputed = input_precomputed.get("shape")
@@ -55,6 +58,7 @@ class DistanceInt8L2Mins:
         # set vector fp32 mask and fp16 mask
         self.int32_mask = 64
         self.min_mask = 64
+        self.fp16_mask = 128
         # scale changed with dim
         self.scale = 0.01 / min(self.dim // 64, max(self.dim // 128 + 1, 4))
 
@@ -74,7 +78,7 @@ class DistanceInt8L2Mins:
         tik_dprofile = tik.Dprofile("v100", "mini")
         self.tik_instance = tik.Tik(tik_dprofile)
 
-        self.aicore_use = 2
+        self.aicore_use = self.shape_actual_num[0]
         self.queries_num_each_loop = min(48, self.queries_num)
         self.centroids_num_each_loop = min((48 // self.queries_num_each_loop) * 512, 1024)
 
@@ -87,11 +91,18 @@ class DistanceInt8L2Mins:
         self.coeff = self.tik_instance.Scalar("int32", name="coeff", init_value=-2)
         self.query_l2 = self.tik_instance.Scalar("int32", name="query_l2", init_value=0)
 
+		# Here L2 distance applied, we use 60000 as minimal distance
+		self.default_scalar = self.tik_instance.Scalar("float16",
+													   name="default_scalar",
+													   init_value=65500)
+		
         # creat input tensor: input_queries_gm, input_centroids_gm
         # and input_precomputed_gm
         # and output tensor: output_dist_gm, output_flag_gm in global buffer
         self.input_queries_gm = self.tik_instance.Tensor(self.dtype_queries, self.shape_queries,
                                                          name="input_queries_gm", scope=tik.scope_gm)
+        self.input_mask_gm = self.tik_instance.Tensor(self.dtype_mask, self.shape_mask,
+                                                         name="input_mask_gm", scope=tik.scope_gm)
         self.input_centroids_gm = self.tik_instance.Tensor(self.dtype_centroids, self.shape_centroids,
                                                            name="input_centroids_gm", scope=tik.scope_gm)
         self.input_precomputed_gm = self.tik_instance.Tensor(self.dtype_precomputed, self.shape_precomputed,
@@ -115,9 +126,28 @@ class DistanceInt8L2Mins:
         actual_num = self.tik_instance.Scalar(dtype="uint32", name="actual_code_num", init_value=0)
         actual_num.set_as(actual_num_ub[0])
 
-        self.centroids_num_each_core = \
-            (actual_num // self.aicore_use + self.min_mask * 8) // self.min_mask // 16 * self.min_mask * 16
-        self.centroids_num_last_core = actual_num - (self.aicore_use - 1) * self.centroids_num_each_core
+		self.mask_offset = self.tik_instance.Scalar(dtype="uint32",
+													name="mask_offset",
+													init_value=0)
+		self.mask_offset.set_as(actual_num_ub[1])
+		
+		self.mask_len = self.tik_instance.Scalar(dtype="uint32",
+												 name="mask_len",
+												 init_value=0)
+		self.mask_len.set_as(actual_num_ub[2])
+		
+		self.use_mask = self.tik_instance.Scalar(dtype="uint32",
+												 name="use_mask",
+												 init_value=0)
+		self.use_mask.set_as(actual_num_ub[3])
+		
+		if self.aicore_use == 2:
+			self.centroids_num_each_core = \
+				(actual_num // self.aicore_use + self.min_mask * 8) // self.min_mask // 16 * self.min_mask * 16
+		else:
+			self.centroids_num_each_core = actual_num // self.aicore_use // self.min_mask // 16 * self.min_mask * 16
+		
+		self.centroids_num_last_core = actual_num - (self.aicore_use - 1) * self.centroids_num_each_core		
 
     def distance_int8_l2_each_loop(self, aicore_move_offset, aicore_centroids_num, move_offset, move_num):
         queries_align = (move_num + 15) // 16 * 16
@@ -239,6 +269,41 @@ class DistanceInt8L2Mins:
         dst_ub = self.tik_instance.Tensor("float16", (queries_move_num, self.centroids_num_each_loop),
                                           name="add_ub", scope=tik.scope_ubuf)
         self._conv(dst_ub, add_ub, queries_move_num * self.centroids_num_each_loop, self.int32_mask, self.scale)
+	
+		# Filter dst_ub
+		with self.tik_instance.if_scope(self.use_mask > 0):
+			min_val_ub = self.tik_instance.Tensor("float16", (128,), name="min_val_ub", scope=tik.scope_ubuf)
+			self.tik_instance.vec_dup(self.fp16_mask, min_val_ub, self.default_scalar, 1, 8)
+			
+			# malloc memory on chip
+			sel_ub = self.tik_instance.Tensor("uint8", (queries_move_num, (self.centroids_num_each_loop + 7) // 8),
+											  name="sel_ub", scope=tik.scope_ubuf)
+			with self.tik_instance.for_range(0, queries_move_num) as j:
+				# move data from input_mask_gm to sel_ub
+				self.tik_instance.data_move(sel_ub[j, 0],
+											self.input_mask_gm[(j + queries_move_offset) * self.mask_len + 
+											(self.mask_offset + aicore_move_offset +
+											centroids_move_offset) // 8],
+											0, 1, (self.centroids_num_each_loop + 255) // 256, 8, 8)
+			
+			# cal the loop need execute the selection process
+			vsel_loop = self.centroids_num_each_loop // self.fp16_mask
+			if vsel_loop > 0:
+				for vloop in range(vsel_loop):
+					# sel_ub can not use repeat times > 1, use for + offset
+					voffset = vloop * self.fp16_mask
+					# select value in dst_ub according to sel_ub
+					self.tik_instance.vec_sel(self.fp16_mask, 0, dst_ub[j, voffset],
+											  sel_ub[j, voffset // 8], dst_ub[j, voffset],
+											  min_val_ub, 1, 8, 8, 0)
+					
+					# handle tail in case of self.centroids_num_each_loop % self.fp16_mask != 0
+					vsel_last = self.centroids_num_each_loop % self.fp16_mask
+					if vsel_last > 0:
+						vsel_offset = vsel_loop * self.fp16_mask
+						self.tik_instance.vec_sel(vsel_last, 0, dst_ub[j, vsel_offset], sel_ub[j, vsel_offset // 8],
+						dst_ub[j, vsel_offset], min_val_ub, 1, 8, 8, 0)
+		
         self.tik_instance.data_move(self.output_dist_gm[queries_move_offset,
                                                         aicore_move_offset + centroids_move_offset],
                                     dst_ub, 0, queries_move_num, self.centroids_num_each_loop // 16, 0,
@@ -342,7 +407,7 @@ class DistanceInt8L2Mins:
             flag_ub = self.tik_instance.Tensor("uint16", (16,), name="flag_ub", scope=tik.scope_ubuf)
 
             flag_ub[0].set_as(one)
-            self.tik_instance.data_move(self.output_flag_gm[block_index * 16], flag_ub, 0, 1, 1, 0, 0)
+            self.tik_instance.data_move(self.output_flag_gm[block_index, 0], flag_ub, 0, 1, 1, 0, 0)
 
     def get_tik_instance(self):
         """
@@ -353,6 +418,7 @@ class DistanceInt8L2Mins:
         self.tik_instance.BuildCCE(kernel_name=self.kernel_name,
                                    inputs=[
                                        self.input_queries_gm,
+                                       self.input_mask_gm,
                                        self.input_centroids_gm,
                                        self.input_precomputed_gm,
                                        self.input_actual_num_gm
@@ -364,7 +430,7 @@ class DistanceInt8L2Mins:
         return self.tik_instance
 
 
-def distance_int8_l2_mins(input_queries, input_centroids,
+def distance_int8_l2_mins(input_queries, input_mask, input_centroids,
                           input_precomputed, input_actual_num,
                           output_dist, output_min_dist, output_flag,
                           kernel_name="distance_int8_l2"):
@@ -396,6 +462,7 @@ def distance_int8_l2_mins(input_queries, input_centroids,
     None
     """
     distance_int8_l2_mins_ = DistanceInt8L2Mins(input_queries,
+                                                input_mask,
                                                 input_centroids,
                                                 input_precomputed,
                                                 input_actual_num,

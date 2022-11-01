@@ -65,7 +65,7 @@ public:
     // query n vectors of dimension d to the index
     // return at most k vectors. If there are not enough results for a query,
     // the result array is padded with -1s.
-    void search(idx_t n, const int8_t *x, idx_t k, float16_t *distances, idx_t *labels);
+    void search(idx_t n, const int8_t *x, idx_t k, float16_t *distances, idx_t *labels, uint8_t *mask = nullptr);
 
 protected:
     virtual void addImpl(int n, const int8_t *x, const idx_t *ids) = 0;
@@ -95,6 +95,9 @@ protected:
 
     // set if the Index does not require training, or if training is done already
     bool isTrained;
+
+	uint8_t *maskData;
+	uint32_t maskSearchedOffset;
 
     // support search batch sizes, default is no paging
     std::vector<int> searchPageSizes;

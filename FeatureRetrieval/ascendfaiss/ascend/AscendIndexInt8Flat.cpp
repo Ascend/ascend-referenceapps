@@ -18,6 +18,7 @@
 #include <faiss/ascend/utils/AscendThreadPool.h>
 #include <faiss/ascend/rpc/AscendRpc.h>
 #include <faiss/ascend/utils/AscendUtils.h>
+#include <faiss/ascend/utils/fp16.h>
 #include <faiss/ascend/rpc/AscendRpcIndexInt8Flat.h>
 #include <faiss/impl/AuxIndexStructures.h>
 #include <algorithm>
@@ -346,6 +347,32 @@ void AscendIndexInt8Flat::copyTo(faiss::IndexScalarQuantizer* index) const
         }
         index->codes = std::move(baseData);
     }
+}
+
+void AscendIndexInt8Flat::searchFilter(int n, const int8_t *x, int k, float *distances, Index::idx_t *labels,
+    uint8_t *mask) const
+{
+	size_t deviceCnt = int8FlatConfig.deviceList.size();
+	std::vector<int8_t> query(x, x + n * this->d);
+	std::vector<std::vector<float>> dist(deviceCnt, std::vector<float>(n * k, 0));
+	std::vector<std::vector<uint16_t>> distHalf(deviceCnt, std::vector<uint16_t>(n * k, 0));
+	std::vector<std::vector<uint32_t>> label(deviceCnt, std::vector<uint32_t>(n * k, 0));
+
+	auto searchFunctor = [&](int idx) {
+		int deviceId = int8FlatConfig.deviceList[idx];
+		rpcContext ctx = contextMap.at(deviceId);
+		int indexId = indexMap.at(ctx);
+		RpcError ret = RpcIndexInt8SearchFilter(ctx, indexId, n, this->d, k, query.data(), distHalf[idx].data(),
+			label[idx].data(), (this->ntotal + 7) / 8, mask);
+		FAISS_THROW_IF_NOT_FMT(ret == RPC_ERROR_NONE, "Search filter implement failed(%d).", ret);
+		
+		transform(begin(distHalf[idx]), end(distHalf[idx]), begin(dist[idx]),
+			[](uint16_t temp) { return (float)fp16(temp); });
+	};
+
+	CALL_PARALLEL_FUNCTOR(deviceCnt, pool, searchFunctor);
+	
+	searchPostProcess(deviceCnt, dist, label, n, k, distances, labels);
 }
 
 bool AscendIndexInt8Flat::addImplRequiresIDs() const

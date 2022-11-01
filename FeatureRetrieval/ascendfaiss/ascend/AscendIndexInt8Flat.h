@@ -68,6 +68,8 @@ public:
     // in the index instance
     void copyTo(faiss::IndexScalarQuantizer* index) const;
 
+	void searchFilter(int n, const int8_t *x, int k, float *distances, Index::idx_t *labels, uint8_t *mask) const;
+
 protected:
     // Flat index does not require IDs as there is no storage available for them
     bool addImplRequiresIDs() const;
