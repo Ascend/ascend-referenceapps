@@ -258,15 +258,15 @@ void IndexInt8FlatCos::resetDistCompOp(int codeNum)
 {
     auto distCompOpReset = [&](std::unique_ptr<AscendOperator> &op, int64_t batch) {
         AscendOpDesc desc("DistanceInt8CosMaxs");
-        std::vector<int64_t> queryShape({batch, dims});
-        std::vector<int64_t> maskShape({batch, utils::divUp(codeNum, 8)});
-        std::vector<int64_t> codeShape({codeNum / CUBE_ALIGN, dims / CUBE_ALIGN_INT8, CUBE_ALIGN, CUBE_ALIGN_INT8});
-        std::vector<int64_t> queriesNormShape({(batch + FP16_ALGIN - 1) / FP16_ALGIN * FP16_ALGIN});
-        std::vector<int64_t> codesNormShape({codeNum});
-        std::vector<int64_t> sizeShape({CORE_NUM, SIZE_ALIGN_SIZE});
-        std::vector<int64_t> resultShape({batch, codeNum});
-        std::vector<int64_t> minResultShape({batch, this->burstsOfComputeBatch});
-        std::vector<int64_t> flagShape({FLAG_NUM, FLAG_ALIGN_SIZE});
+        std::vector<int64_t> queryShape({ batch, dims });
+        std::vector<int64_t> maskShape({ batch, utils::divUp(codeNum, 8) });
+        std::vector<int64_t> codeShape({ codeNum / CUBE_ALIGN, dims / CUBE_ALIGN_INT8, CUBE_ALIGN, CUBE_ALIGN_INT8 });
+        std::vector<int64_t> queriesNormShape({ (batch + FP16_ALGIN - 1) / FP16_ALGIN * FP16_ALGIN });
+        std::vector<int64_t> codesNormShape({ codeNum });
+        std::vector<int64_t> sizeShape({ CORE_NUM, SIZE_ALIGN_SIZE });
+        std::vector<int64_t> resultShape({ batch, codeNum });
+        std::vector<int64_t> minResultShape({ batch, this->burstsOfComputeBatch });
+        std::vector<int64_t> flagShape({ FLAG_NUM, FLAG_ALIGN_SIZE });
 
         desc.addInputTensorDesc(ACL_INT8, queryShape.size(), queryShape.data(), ACL_FORMAT_ND);
         desc.addInputTensorDesc(ACL_UINT8, maskShape.size(), maskShape.data(), ACL_FORMAT_ND);

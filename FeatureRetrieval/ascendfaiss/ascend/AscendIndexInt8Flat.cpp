@@ -363,11 +363,11 @@ void AscendIndexInt8Flat::searchFilter(int n, const int8_t *x, int k, float *dis
 		rpcContext ctx = contextMap.at(deviceId);
 		int indexId = indexMap.at(ctx);
 		RpcError ret = RpcIndexInt8SearchFilter(ctx, indexId, n, this->d, k, query.data(), distHalf[idx].data(),
-                                                label[idx].data(), (this->ntotal + 7) / 8, mask);
+                                          label[idx].data(), (this->ntotal + 7) / 8, mask);
 		FAISS_THROW_IF_NOT_FMT(ret == RPC_ERROR_NONE, "Search filter implement failed(%d).", ret);
 		
 		transform(begin(distHalf[idx]), end(distHalf[idx]), begin(dist[idx]),
-                  [](uint16_t temp) { return (float)fp16(temp); });
+            [](uint16_t temp) { return (float)fp16(temp); });
 	};
 
 	CALL_PARALLEL_FUNCTOR(deviceCnt, pool, searchFunctor);
