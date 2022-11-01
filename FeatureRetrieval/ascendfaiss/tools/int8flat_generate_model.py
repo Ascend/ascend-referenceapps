@@ -51,12 +51,6 @@ def arg_parse():
                         default=16384,
                         type=int,
                         help="Code size for compute norm")
-    
-    parser.add_argument("-p",
-                        dest='process_id',
-                        default='0',
-                        type=str,
-                        help="Number of process_id")
 
     return parser.parse_args()
 
@@ -153,26 +147,26 @@ def generate_distance_int8_l2_mins_json(core_num, query_num, dim, file_path):
     utils.generate_op_config(int8_l2_mins_obj, file_path)
 
 
-def generate_int8_offline_model(process_id, core_num, dim, work_dir='.'):
+def generate_int8_offline_model(core_num, dim, work_dir='.'):
     config_path = utils.get_config_path(work_dir)
 
-    int8_l2_mins_op_name = "int8_flat_l2_mins_op{}_pid{}"
-    int8_cos_maxs_op_name = "int8_flat_cos_maxs_op{}_pid{}"
+    int8_l2_mins_op_name = "int8_flat_l2_mins_op{}"
+    int8_cos_maxs_op_name = "int8_flat_cos_maxs_op{}"
     search_page_sizes = (48, 36, 32, 24, 18, 16, 12, 8, 6, 4, 2, 1)
 
     try:
         for page_size in search_page_sizes:
-            op_name_ = int8_l2_mins_op_name.format(page_size, process_id)
+            op_name_ = int8_l2_mins_op_name.format(page_size)
             file_path_ = os.path.join(config_path, '%s.json' % op_name_)
             generate_distance_int8_l2_mins_json(core_num, page_size, dim, file_path_)
             utils.atc_model(op_name_)
 
-            op_name_ = int8_cos_maxs_op_name.format(page_size, process_id)
+            op_name_ = int8_cos_maxs_op_name.format(page_size)
             file_path_ = os.path.join(config_path, '%s.json' % op_name_)
             generate_distance_int8_cos_maxs_json(core_num, page_size, dim, file_path_)
             utils.atc_model(op_name_)
 
-        op_name_ = "int8_l2_norm_d{}_pid{}".format(dim, process_id)
+        op_name_ = "int8_l2_norm_d{}".format(dim)
         file_path_ = os.path.join(config_path, '%s.json' % op_name_)
         utils.get_int8_l2_norm_json(norm_code_num, dim, file_path_)
         utils.atc_model(op_name_)
@@ -191,6 +185,5 @@ if __name__ == '__main__':
     args = arg_parse()
     core_num = args.core_num
     dim = args.dim
-    process_id = args.process_id
 
-    generate_int8_offline_model(process_id, core_num, dim)
+    generate_int8_offline_model(core_num, dim)
