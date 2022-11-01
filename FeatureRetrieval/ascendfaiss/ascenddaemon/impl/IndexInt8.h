@@ -96,8 +96,8 @@ protected:
     // set if the Index does not require training, or if training is done already
     bool isTrained;
 
-	uint8_t *maskData;
-	uint32_t maskSearchedOffset;
+    uint8_t *maskData;
+    uint32_t maskSearchedOffset;
 
     // support search batch sizes, default is no paging
     std::vector<int> searchPageSizes;

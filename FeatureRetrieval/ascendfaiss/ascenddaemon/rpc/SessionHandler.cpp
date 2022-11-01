@@ -199,10 +199,10 @@ int SessionHandler::HandleRpcIndexInt8(int rpcType, int msgLen)
         case RPC_INDEX_INT8_SEARCH:
             HANDLE_RPC(IndexInt8SearchRequest, IndexInt8SearchResponse, IndexInt8Search);
             break;
-		case RPC_INDEX_INT8_SEARCH_FILTER:
+        case RPC_INDEX_INT8_SEARCH_FILTER:
             HANDLE_RPC(IndexInt8SearchFilterRequest, IndexInt8SearchResponse, IndexInt8SearchFilter);
             break;
-		case RPC_INDEX_INT8_REMOVE_IDS:
+        case RPC_INDEX_INT8_REMOVE_IDS:
             HANDLE_RPC(IndexRemoveIdsRequest, IndexRemoveIdsResponse, IndexInt8RemoveIds);
             break;
         case RPC_INDEX_INT8_REMOVE_RANGE_IDS:
@@ -1380,7 +1380,7 @@ int SessionHandler::IndexInt8SearchFilter(const IndexInt8SearchFilterRequest *re
     RPC_REQUIRE_NOT_NULL(pIndex);
     LOG_IF_EXCEPT(pIndex->search(n, reinterpret_cast<const int8_t *>(query.data()), k,
                                  distance.data(), reinterpret_cast<Index::idx_t *>(label.data()),
-								 const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(mask.data()))));
+                                 const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(mask.data()))));
     RPC_TIME_LOG("index %d search filter end\n", indexId);
 
     resp->set_distance(distance.data(), distance.size() * sizeof(float16_t));

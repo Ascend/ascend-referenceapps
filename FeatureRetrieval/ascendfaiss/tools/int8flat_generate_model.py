@@ -39,8 +39,8 @@ def arg_parse():
                         default=2,
                         type=int,
                         help="Core number")
-	
-	parser.add_argument("-d",
+    
+    parser.add_argument("-d",
                         dest='dim',
                         default=512,
                         type=int,
@@ -51,8 +51,8 @@ def arg_parse():
                         default=16384,
                         type=int,
                         help="Code size for compute norm")
-	
-	parser.add_argument("-p",
+    
+    parser.add_argument("-p",
                         dest='process_id',
                         default='0',
                         type=str,
@@ -75,10 +75,10 @@ def generate_distance_int8_cos_maxs_json(core_num, query_num, dim, file_path):
             "shape": [query_num, (code_num + 7) // 8],
             "type": "uint8"
         }, {
-			"format": "ND",
-			"shape": [code_num // 16, dim // 32, 16, 32],
-			"type": "int8"
-		}, {
+            "format": "ND",
+            "shape": [code_num // 16, dim // 32, 16, 32],
+            "type": "int8"
+        }, {
             "format": "ND",
             "shape": [(query_num + 15) // 16 * 16],
             "type": "float16"
@@ -123,9 +123,9 @@ def generate_distance_int8_l2_mins_json(core_num, query_num, dim, file_path):
             "shape": [query_num, (code_num + 7) // 8],
             "type": "uint8"
         }, {
-			"format": "ND",
-			"shape": [code_num // 16, dim // 32, 16, 32],
-			"type": "int8"
+            "format": "ND",
+            "shape": [code_num // 16, dim // 32, 16, 32],
+            "type": "int8"
         }, {
             "format": "ND",
             "shape": [code_num],
@@ -189,8 +189,8 @@ if __name__ == '__main__':
     utils.set_env()
 
     args = arg_parse()
-	core_num = args.core_num
+    core_num = args.core_num
     dim = args.dim
-	process_id = args.process_id
+    process_id = args.process_id
 
     generate_int8_offline_model(process_id, core_num, dim)

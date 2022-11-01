@@ -131,7 +131,7 @@ public:
                     faiss_ascend::IndexSearchResponse *resp);
     int IndexInt8Search(const faiss_ascend::IndexInt8SearchRequest *req,
                         faiss_ascend::IndexInt8SearchResponse *resp);
-	int IndexInt8SearchFilter(const faiss_ascend::IndexInt8SearchFilterRequest *req,
+    int IndexInt8SearchFilter(const faiss_ascend::IndexInt8SearchFilterRequest *req,
                         faiss_ascend::IndexInt8SearchResponse *resp);
     int IndexRemoveIds(const faiss_ascend::IndexRemoveIdsRequest *req,
                        faiss_ascend::IndexRemoveIdsResponse *resp);

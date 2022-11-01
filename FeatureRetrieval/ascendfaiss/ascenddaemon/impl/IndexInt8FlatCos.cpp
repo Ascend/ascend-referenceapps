@@ -139,10 +139,10 @@ void IndexInt8FlatCos::searchImpl(int n, const int8_t *x, int k, float16_t *dist
         AscendTensor<uint32_t, DIMS_1> indices;
         uint32_t offset = 0;
         for (int i = 0; i < repeatTimes && !errorQuit; ++i) {
-			for (int j = 0; j < CORE_NUM; ++j) {
-				uint16_t *volatile flagPtr = opFlag[i][j].data();
-				WAITING_FLAG_READY(*flagPtr, TIMEOUT_CHECK_TICK, TIMEOUT_MS);
-			}
+            for (int j = 0; j < CORE_NUM; ++j) {
+                uint16_t *volatile flagPtr = opFlag[i][j].data();
+                WAITING_FLAG_READY(*flagPtr, TIMEOUT_CHECK_TICK, TIMEOUT_MS);
+            }
 
             int size = (i == (repeatTimes - 1)) ? (ntotal - offset) : distComputeBatch;
             for (int j = idx; j < n; j += THREADS_CNT) {
@@ -180,38 +180,38 @@ void IndexInt8FlatCos::searchImpl(int n, const int8_t *x, int k, float16_t *dist
         auto flag = opFlag[i].view();
 
         int offset = i * this->distComputeBatch;
-		int maskSize = static_cast<int>(utils::divUp(this->distComputeBatch, 8));
-		AscendTensor<uint8_t, DIMS_2> mask(this->maskData + this->maskSearchedOffset, { n, maskSize });
-		actualSize[0][IDX_ACTUAL_NUM] = 
-			std::min(static_cast<uint32_t>(this->ntotal - offset), static_cast<uint32_t>(distComputeBatch));		
-		actualSize[0][IDX_COMP_OFFSET] = offset;
-		actualSize[0][IDX_MASK_LEN] = static_cast<int>(utils::divUp(this->ntotal, 8));		
-		actualSize[0][IDX_USE_MASK] = (this->maskData != nullptr) ? 1 : 0;
+        int maskSize = static_cast<int>(utils::divUp(this->distComputeBatch, 8));
+        AscendTensor<uint8_t, DIMS_2> mask(this->maskData + this->maskSearchedOffset, { n, maskSize });
+        actualSize[0][IDX_ACTUAL_NUM] = 
+            std::min(static_cast<uint32_t>(this->ntotal - offset), static_cast<uint32_t>(distComputeBatch));        
+        actualSize[0][IDX_COMP_OFFSET] = offset;
+        actualSize[0][IDX_MASK_LEN] = static_cast<int>(utils::divUp(this->ntotal, 8));      
+        actualSize[0][IDX_USE_MASK] = (this->maskData != nullptr) ? 1 : 0;
         
-		runDistCompute(queries, mask, shaped, queriesNorm, codesNorm, actualSize, dist, minDist, flag, stream);
+        runDistCompute(queries, mask, shaped, queriesNorm, codesNorm, actualSize, dist, minDist, flag, stream);
     }
 
     // 5. wait all the op task compute, avoid thread dispatch
     aclrtSynchronizeStream(stream);
 
     // 6. waiting for topk functor to finish
-	int topkWaitIdx = 0;
+    int topkWaitIdx = 0;
     try {
         for (auto &ret : topkFunctorRet) {
             topkWaitIdx++;
-			ret.get();
+            ret.get();
         }
     } catch (std::exception &e) {
         errorQuit = true;
         for_each(topkFunctorRet.begin() + topkWaitIdx, topkFunctorRet.end(), [](auto &ret) { ret.wait(); });
-		ASCEND_THROW_MSG(e.what());
+        ASCEND_THROW_MSG(e.what());
     }
 
     topkOp.reorder(outDistances, outIndices);
 }
 
 void IndexInt8FlatCos::runDistCompute(AscendTensor<int8_t, DIMS_2> &queryVecs,
-									  AscendTensor<uint8_t, DIMS_2> &mask,
+                                      AscendTensor<uint8_t, DIMS_2> &mask,
                                       AscendTensor<int8_t, DIMS_4> &shapedData,
                                       AscendTensor<float16_t, DIMS_1> &queriesNorm,
                                       AscendTensor<float16_t, DIMS_1> &codesNorm,

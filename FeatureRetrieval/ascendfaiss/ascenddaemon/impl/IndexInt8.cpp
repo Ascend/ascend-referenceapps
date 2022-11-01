@@ -34,7 +34,7 @@ IndexInt8::IndexInt8(idx_t d, MetricType metric, int resourceSize)
       ntotal(0), 
       metricType(metric),
       isTrained(false),
-	  maskData(nullptr),
+      maskData(nullptr),
       maskSearchedOffset(0)
 {
     if (resourceSize == 0) {
@@ -112,8 +112,8 @@ void IndexInt8::search(idx_t n, const int8_t *x, idx_t k, float16_t *distances, 
         return;
     }
 
-	this->maskData = mask;
-	this->maskSearchedOffset = 0;
+    this->maskData = mask;
+    this->maskSearchedOffset = 0;
 
     return searchPaged(n, x, k, distances, labels);
 }
