@@ -39,7 +39,7 @@ public:
 protected:
     void searchImpl(int n, const int8_t *x, int k, float16_t *distances, idx_t *labels) override;
 
-    void runDistCompute(AscendTensor<int8_t, DIMS_2> &queryVecs, 
+    void runDistCompute(AscendTensor<int8_t, DIMS_2> &queryVecs,
                         AscendTensor<uint8_t, DIMS_2> &mask,
                         AscendTensor<int8_t, DIMS_4> &shapedData,
                         AscendTensor<int32_t, DIMS_1> &norms,

@@ -43,7 +43,6 @@ const int IDX_ACTUAL_NUM = 0;
 const int IDX_COMP_OFFSET = 1;
 const int IDX_MASK_LEN = 2;
 const int IDX_USE_MASK = 3;
-
 }
 
 IndexInt8FlatL2::IndexInt8FlatL2(int dim, int resourceSize)
@@ -144,14 +143,15 @@ void IndexInt8FlatL2::searchImpl(int n, const int8_t *x, int k, float16_t *dista
         auto flag = opFlag[i].view();
 
         int offset = i * this->distComputeBatch;
-        int maskSize = static_cast<int>(utils::divUp(this->distComputeBatch, 8));
+        int maskSize = static_cast<int>(utils::divUp(this->distComputeBatch, 8));  /* uint8 has 8 bits */
         AscendTensor<uint8_t, DIMS_2> mask(this->maskData + this->maskSearchedOffset, { n, maskSize });
         
-        actualSize[0][IDX_ACTUAL_NUM] = 
-            std::min(static_cast<uint32_t>(this->ntotal - offset), static_cast<uint32_t>(this->distComputeBatch));      
+        actualSize[0][IDX_ACTUAL_NUM] =
+            std::min(static_cast<uint32_t>(this->ntotal - offset), static_cast<uint32_t>(this->distComputeBatch));
         actualSize[0][IDX_COMP_OFFSET] = offset;
 
-        actualSize[0][IDX_MASK_LEN] = static_cast<int>(utils::divUp(this->ntotal, 8));      
+        // uint8 have 8 bits
+        actualSize[0][IDX_MASK_LEN] = static_cast<int>(utils::divUp(this->ntotal, 8));
         actualSize[0][IDX_USE_MASK] = (this->maskData != nullptr) ? 1 : 0;
 
         runDistCompute(queries, mask, shaped, norm, actualSize, dist, minDist, flag, stream);
@@ -180,7 +180,7 @@ void IndexInt8FlatL2::runDistCompute(AscendTensor<int8_t, DIMS_2> &queryVecs,
                                      AscendTensor<uint8_t, DIMS_2> &mask,
                                      AscendTensor<int8_t, DIMS_4> &shapedData,
                                      AscendTensor<int32_t, DIMS_1> &norms,
-                                     AscendTensor<uint32_t, DIMS_2> &size, 
+                                     AscendTensor<uint32_t, DIMS_2> &size,
                                      AscendTensor<float16_t, DIMS_2> &outDistances,
                                      AscendTensor<float16_t, DIMS_2> &minDistances,
                                      AscendTensor<uint16_t, DIMS_2> &flag, aclrtStream stream)
@@ -221,15 +221,15 @@ void IndexInt8FlatL2::resetDistCompOp(int codeNum)
 {
     auto distCompOpReset = [&](std::unique_ptr<AscendOperator> &op, int64_t batch) {
         AscendOpDesc desc("DistanceInt8L2Mins");
-        std::vector<int64_t> queryShape({ batch, dims });
-        std::vector<int64_t> maskShape({ batch, utils::divUp(codeNum, 8) });
-        std::vector<int64_t> coarseCentroidsShape({ utils::divUp(codeNum, CUBE_ALIGN),
-            utils::divUp(dims, CUBE_ALIGN_INT8), CUBE_ALIGN, (int64_t)CUBE_ALIGN_INT8 });
-        std::vector<int64_t> preNormsShape({ codeNum });
-        std::vector<int64_t> sizeShape({ CORE_NUM, SIZE_ALIGN_SIZE });
-        std::vector<int64_t> distResultShape({ batch, codeNum });
-        std::vector<int64_t> minResultShape({ batch, this->burstsOfComputeBatch });
-        std::vector<int64_t> flagShape({ FLAG_NUM, FLAG_ALIGN_SIZE });
+        std::vector<int64_t> queryShape({batch, dims});
+        std::vector<int64_t> maskShape({batch, utils::divUp(codeNum, 8)});
+        std::vector<int64_t> coarseCentroidsShape({utils::divUp(codeNum, CUBE_ALIGN),
+            utils::divUp(dims, CUBE_ALIGN_INT8), CUBE_ALIGN, (int64_t)CUBE_ALIGN_INT8});
+        std::vector<int64_t> preNormsShape({codeNum});
+        std::vector<int64_t> sizeShape({CORE_NUM, SIZE_ALIGN_SIZE});
+        std::vector<int64_t> distResultShape({batch, codeNum});
+        std::vector<int64_t> minResultShape({batch, this->burstsOfComputeBatch});
+        std::vector<int64_t> flagShape({FLAG_NUM, FLAG_ALIGN_SIZE});
 
         desc.addInputTensorDesc(ACL_INT8, queryShape.size(), queryShape.data(), ACL_FORMAT_ND);
         desc.addInputTensorDesc(ACL_UINT8, maskShape.size(), maskShape.data(), ACL_FORMAT_ND);

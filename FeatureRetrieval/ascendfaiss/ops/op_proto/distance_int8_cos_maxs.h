@@ -21,16 +21,16 @@
 
 namespace ge {
     REG_OP(DistanceInt8CosMaxs)
-        .INPUT(x0, TensorType({ DT_INT8 }))
-        .INPUT(x1, TensorType({ DT_UINT8 }))
-        .INPUT(x2, TensorType({ DT_INT8 }))
-        .INPUT(x3, TensorType({ DT_FLOAT16 }))
-        .INPUT(x4, TensorType({ DT_FLOAT16 }))
-        .INPUT(x5, TensorType({ DT_UINT32 }))
+        .INPUT(x0, TensorType({DT_INT8}))
+        .INPUT(x1, TensorType({DT_UINT8}))
+        .INPUT(x2, TensorType({DT_INT8}))
+        .INPUT(x3, TensorType({DT_FLOAT16}))
+        .INPUT(x4, TensorType({DT_FLOAT16}))
+        .INPUT(x5, TensorType({DT_UINT32}))
         /* "Result, has same element type as three inputs" */
-        .OUTPUT(y0, TensorType({ DT_FLOAT16 }))
-        .OUTPUT(y1, TensorType({ DT_FLOAT16 }))
-        .OUTPUT(y2, TensorType({ DT_UINT16 }))
+        .OUTPUT(y0, TensorType({DT_FLOAT16}))
+        .OUTPUT(y1, TensorType({DT_FLOAT16}))
+        .OUTPUT(y2, TensorType({DT_UINT16}))
         .OP_END_FACTORY_REG(DistanceInt8CosMaxs)
 } // namespace ge
 #endif // GE_OP_DISTANCE_INT8_COS_MAXS_H

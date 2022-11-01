@@ -496,7 +496,7 @@ int SessionHandler::CreateIndexFlat(const CreateIndexFlatRequest *req, CreateInd
     CommonResponse_ErrorCode result = CommonResponse_ErrorCode_OK;
     IndexFlat *index = nullptr;
     switch (req->metric()) {
-        case MetricType::METRIC_L2: 
+        case MetricType::METRIC_L2:
             LOG_IF_EXCEPT(index = new IndexFlatL2(req->dim(), req->resource()));
             break;
         case MetricType::METRIC_INNER_PRODUCT: 
