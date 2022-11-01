@@ -102,7 +102,7 @@ class DistanceInt8L2Mins:
         self.input_queries_gm = self.tik_instance.Tensor(self.dtype_queries, self.shape_queries,
                                                          name="input_queries_gm", scope=tik.scope_gm)
         self.input_mask_gm = self.tik_instance.Tensor(self.dtype_mask, self.shape_mask,
-                                                         name="input_mask_gm", scope=tik.scope_gm)
+                                                      name="input_mask_gm", scope=tik.scope_gm)
         self.input_centroids_gm = self.tik_instance.Tensor(self.dtype_centroids, self.shape_centroids,
                                                            name="input_centroids_gm", scope=tik.scope_gm)
         self.input_precomputed_gm = self.tik_instance.Tensor(self.dtype_precomputed, self.shape_precomputed,
@@ -282,8 +282,8 @@ class DistanceInt8L2Mins:
                 # move data from input_mask_gm to sel_ub
                 self.tik_instance.data_move(sel_ub[j, 0],
                                             self.input_mask_gm[(j + queries_move_offset) * self.mask_len + 
-                                            (self.mask_offset + aicore_move_offset +
-                                            centroids_move_offset) // 8],
+                                                               (self.mask_offset + aicore_move_offset +
+                                                               centroids_move_offset) // 8],
                                             0, 1, (self.centroids_num_each_loop + 255) // 256, 8, 8)
             
             # cal the loop need execute the selection process
