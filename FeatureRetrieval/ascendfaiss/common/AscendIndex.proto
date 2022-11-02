@@ -289,6 +289,15 @@ message IndexInt8SearchRequest {
     bytes query = 5;
 }
 
+message IndexInt8SearchFilterRequest {
+    int32 indexId = 1;
+    int32 n = 2;
+    int32 dim = 3;
+    int32 k = 4;
+    bytes query = 5;
+    bytes mask = 6;
+}
+
 message IndexInt8SearchResponse {
     CommonResponse result = 1;
     bytes distance = 2;

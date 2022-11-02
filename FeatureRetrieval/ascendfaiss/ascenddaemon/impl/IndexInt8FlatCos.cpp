@@ -31,7 +31,7 @@ namespace {
 const int L2NORM_COMPUTE_BATCH = 16384;
 const double TIMEOUT_MS = 50000;
 const int TIMEOUT_CHECK_TICK = 5120;
-const int FLAG_ALIGN_SIZE = 32;
+const int FLAG_ALIGN_SIZE = 16;
 const int FLAG_ALIGN_OFFSET = 16; // core 0 use first 16 flag, and core 1 use the second 16 flag.
 const int SIZE_ALIGN_SIZE = 8;
 const int THREADS_CNT = 6;
@@ -39,6 +39,12 @@ const int BURST_LEN = 64;
 const int FP16_ALGIN = 16;
 const int CUBE_ALIGN = 16;
 const int CUBE_ALIGN_INT8 = 32;
+const int CORE_NUM = 2;
+const int FLAG_NUM = 16;
+const int IDX_ACTUAL_NUM = 0;
+const int IDX_COMP_OFFSET = 1;
+const int IDX_MASK_LEN = 2;
+const int IDX_USE_MASK = 3;
 }
 
 IndexInt8FlatCos::IndexInt8FlatCos(int dim, int resourceSize)
@@ -106,8 +112,8 @@ void IndexInt8FlatCos::searchImpl(int n, const int8_t *x, int k, float16_t *dist
     int repeatTimes = utils::divUp(this->ntotal, this->distComputeBatch);
     AscendTensor<float16_t, DIMS_3> distResult(mem, { repeatTimes, n, distComputeBatch }, stream);
     AscendTensor<float16_t, DIMS_3> minDistResult(mem, { repeatTimes, n, this->burstsOfComputeBatch }, stream);
-    AscendTensor<uint32_t, DIMS_2> opSize(mem, { repeatTimes, SIZE_ALIGN_SIZE }, stream);
-    AscendTensor<uint16_t, DIMS_2> opFlag(mem, { repeatTimes, FLAG_ALIGN_SIZE }, stream);
+    AscendTensor<uint32_t, DIMS_3> opSize(mem, { repeatTimes, CORE_NUM, SIZE_ALIGN_SIZE }, stream);
+    AscendTensor<uint16_t, DIMS_3> opFlag(mem, { repeatTimes, FLAG_NUM, FLAG_ALIGN_SIZE }, stream);
     opFlag.zero();
 
     AscendTensor<float16_t, DIMS_2> outDistances(distances, { n, k });
@@ -133,10 +139,10 @@ void IndexInt8FlatCos::searchImpl(int n, const int8_t *x, int k, float16_t *dist
         AscendTensor<uint32_t, DIMS_1> indices;
         uint32_t offset = 0;
         for (int i = 0; i < repeatTimes && !errorQuit; ++i) {
-            uint16_t *volatile flagPtr1 = opFlag[i].data();
-            uint16_t *volatile flagPtr2 = opFlag[i].data() + FLAG_ALIGN_OFFSET;
-
-            WAITING_FLAG_READY((*flagPtr1) && (*flagPtr2), TIMEOUT_CHECK_TICK, TIMEOUT_MS);
+            for (int j = 0; j < CORE_NUM; ++j) {
+                uint16_t *volatile flagPtr = opFlag[i][j].data();
+                WAITING_FLAG_READY(*flagPtr, TIMEOUT_CHECK_TICK, TIMEOUT_MS);
+            }
 
             int size = (i == (repeatTimes - 1)) ? (ntotal - offset) : distComputeBatch;
             for (int j = idx; j < n; j += THREADS_CNT) {
@@ -174,21 +180,30 @@ void IndexInt8FlatCos::searchImpl(int n, const int8_t *x, int k, float16_t *dist
         auto flag = opFlag[i].view();
 
         int offset = i * this->distComputeBatch;
-        actualSize[0] = std::min(static_cast<uint32_t>(this->ntotal - offset), static_cast<uint32_t>(distComputeBatch));
-
-        runDistCompute(queries, shaped, queriesNorm, codesNorm, actualSize, dist, minDist, flag, stream);
+        int maskSize = static_cast<int>(utils::divUp(this->distComputeBatch, 8));
+        AscendTensor<uint8_t, DIMS_2> mask(this->maskData + this->maskSearchedOffset, { n, maskSize });
+        actualSize[0][IDX_ACTUAL_NUM] =
+            std::min(static_cast<uint32_t>(this->ntotal - offset), static_cast<uint32_t>(distComputeBatch));
+        actualSize[0][IDX_COMP_OFFSET] = offset;
+        actualSize[0][IDX_MASK_LEN] = static_cast<int>(utils::divUp(this->ntotal, 8));  /* uint8 mask has 8 bits */
+        actualSize[0][IDX_USE_MASK] = (this->maskData != nullptr) ? 1 : 0;
+        
+        runDistCompute(queries, mask, shaped, queriesNorm, codesNorm, actualSize, dist, minDist, flag, stream);
     }
 
     // 5. wait all the op task compute, avoid thread dispatch
     aclrtSynchronizeStream(stream);
 
     // 6. waiting for topk functor to finish
+    int topkWaitIdx = 0;
     try {
         for (auto &ret : topkFunctorRet) {
+            topkWaitIdx++;
             ret.get();
         }
     } catch (std::exception &e) {
         errorQuit = true;
+        for_each(topkFunctorRet.begin() + topkWaitIdx, topkFunctorRet.end(), [](auto &ret) { ret.wait(); });
         ASCEND_THROW_MSG(e.what());
     }
 
@@ -196,13 +211,14 @@ void IndexInt8FlatCos::searchImpl(int n, const int8_t *x, int k, float16_t *dist
 }
 
 void IndexInt8FlatCos::runDistCompute(AscendTensor<int8_t, DIMS_2> &queryVecs,
+                                      AscendTensor<uint8_t, DIMS_2> &mask,
                                       AscendTensor<int8_t, DIMS_4> &shapedData,
                                       AscendTensor<float16_t, DIMS_1> &queriesNorm,
                                       AscendTensor<float16_t, DIMS_1> &codesNorm,
-                                      AscendTensor<uint32_t, DIMS_1> &size,
+                                      AscendTensor<uint32_t, DIMS_2> &size,
                                       AscendTensor<float16_t, DIMS_2> &outDistances,
                                       AscendTensor<float16_t, DIMS_2> &outMinDistances,
-                                      AscendTensor<uint16_t, DIMS_1> &flag,
+                                      AscendTensor<uint16_t, DIMS_2> &flag,
                                       aclrtStream stream)
 {
     AscendOperator *op = nullptr;
@@ -214,6 +230,7 @@ void IndexInt8FlatCos::runDistCompute(AscendTensor<int8_t, DIMS_2> &queryVecs,
 
     std::vector<const aclDataBuffer *> distOpInput;
     distOpInput.emplace_back(aclCreateDataBuffer(queryVecs.data(), queryVecs.getSizeInBytes()));
+    distOpInput.emplace_back(aclCreateDataBuffer(mask.data(), mask.getSizeInBytes()));
     distOpInput.emplace_back(aclCreateDataBuffer(shapedData.data(), shapedData.getSizeInBytes()));
     distOpInput.emplace_back(aclCreateDataBuffer(queriesNorm.data(), queriesNorm.getSizeInBytes()));
     distOpInput.emplace_back(aclCreateDataBuffer(codesNorm.data(), codesNorm.getSizeInBytes()));
@@ -242,15 +259,17 @@ void IndexInt8FlatCos::resetDistCompOp(int codeNum)
     auto distCompOpReset = [&](std::unique_ptr<AscendOperator> &op, int64_t batch) {
         AscendOpDesc desc("DistanceInt8CosMaxs");
         std::vector<int64_t> queryShape({ batch, dims });
+        std::vector<int64_t> maskShape({ batch, utils::divUp(codeNum, 8) });
         std::vector<int64_t> codeShape({ codeNum / CUBE_ALIGN, dims / CUBE_ALIGN_INT8, CUBE_ALIGN, CUBE_ALIGN_INT8 });
         std::vector<int64_t> queriesNormShape({ (batch + FP16_ALGIN - 1) / FP16_ALGIN * FP16_ALGIN });
         std::vector<int64_t> codesNormShape({ codeNum });
-        std::vector<int64_t> sizeShape({ SIZE_ALIGN_SIZE });
+        std::vector<int64_t> sizeShape({ CORE_NUM, SIZE_ALIGN_SIZE });
         std::vector<int64_t> resultShape({ batch, codeNum });
         std::vector<int64_t> minResultShape({ batch, this->burstsOfComputeBatch });
-        std::vector<int64_t> flagShape({ FLAG_ALIGN_SIZE });
+        std::vector<int64_t> flagShape({ FLAG_NUM, FLAG_ALIGN_SIZE });
 
         desc.addInputTensorDesc(ACL_INT8, queryShape.size(), queryShape.data(), ACL_FORMAT_ND);
+        desc.addInputTensorDesc(ACL_UINT8, maskShape.size(), maskShape.data(), ACL_FORMAT_ND);
         desc.addInputTensorDesc(ACL_INT8, codeShape.size(), codeShape.data(), ACL_FORMAT_ND);
         desc.addInputTensorDesc(ACL_FLOAT16, queriesNormShape.size(), queriesNormShape.data(), ACL_FORMAT_ND);
         desc.addInputTensorDesc(ACL_FLOAT16, codesNormShape.size(), codesNormShape.data(), ACL_FORMAT_ND);

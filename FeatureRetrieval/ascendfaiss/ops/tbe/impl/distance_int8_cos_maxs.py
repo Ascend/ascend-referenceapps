@@ -22,6 +22,7 @@ from te import tik
 class DistanceInt8CosMaxs:
     def __init__(self,
                  input_queries,
+                 input_mask,
                  input_centroids,
                  input_queries_m,
                  input_centroids_m,
@@ -32,6 +33,8 @@ class DistanceInt8CosMaxs:
                  kernel_name="distance_int8_cos_maxs"):
         self.shape_queries = input_queries.get("shape")
         self.dtype_queries = input_queries.get("dtype")
+        self.shape_mask = input_mask.get("shape")
+        self.dtype_mask = input_mask.get("dtype")
         self.shape_centroids = input_centroids.get("shape")
         self.dtype_centroids = input_centroids.get("dtype")
         self.shape_queries_m = input_queries_m.get("shape")
@@ -78,7 +81,7 @@ class DistanceInt8CosMaxs:
         tik_dprofile = tik.Dprofile("v100", "mini")
         self.tik_instance = tik.Tik(tik_dprofile)
 
-        self.aicore_use = 2
+        self.aicore_use = self.shape_actual_num[0]
         self.queries_num_each_loop = min(48, self.queries_num)
         self.centroids_num_each_loop = min((48 // self.queries_num_each_loop) * 512, 1024)
 
@@ -91,7 +94,9 @@ class DistanceInt8CosMaxs:
         self.coeff = self.tik_instance.Scalar("int32", name="coeff", init_value=-2)
 
         self.query_m = self.tik_instance.Scalar("float16", name="query_l2", init_value=0)
-
+        self.default_scalar = self.tik_instance.Scalar("float16",
+                                                       name="default_scalar",
+                                                       init_value=-65500)
         # creat input tensor: input_queries_gm, input_centroids_gm,
         # input_queries_m_gm, input_centroids_m_gm, input_actual_num_gm
         # and output tensor: output_distances_gm, output_max_dist_gm, output_flag_gm in global buffer
@@ -99,6 +104,10 @@ class DistanceInt8CosMaxs:
                                                          self.shape_queries,
                                                          name="input_queries_gm",
                                                          scope=tik.scope_gm)
+        self.input_mask_gm = self.tik_instance.Tensor(self.dtype_mask,
+                                                      self.shape_mask,
+                                                      name="input_mask_gm",
+                                                      scope=tik.scope_gm)
         self.input_centroids_gm = self.tik_instance.Tensor(self.dtype_centroids,
                                                            self.shape_centroids,
                                                            name="input_centroids_gm",
@@ -141,8 +150,26 @@ class DistanceInt8CosMaxs:
         actual_num = self.tik_instance.Scalar(dtype="uint32", name="actual_code_num", init_value=0)
         actual_num.set_as(actual_num_ub[0])
 
-        self.centroids_num_each_core = \
-            (actual_num // self.aicore_use + self.max_mask * 8) // self.max_mask // 16 * self.max_mask * 16
+        self.mask_offset = self.tik_instance.Scalar(dtype="uint32",
+                                                    name="mask_offset",
+                                                    init_value=0)
+        self.mask_offset.set_as(actual_num_ub[1])
+        
+        self.mask_len = self.tik_instance.Scalar(dtype="uint32",
+                                                 name="mask_len",
+                                                 init_value=0)
+        self.mask_len.set_as(actual_num_ub[2])
+        
+        self.use_mask = self.tik_instance.Scalar(dtype="uint32",
+                                                 name="use_mask",
+                                                 init_value=0)
+        self.use_mask.set_as(actual_num_ub[3])
+        
+        if self.aicore_use == 2:
+            self.centroids_num_each_core = \
+                (actual_num // self.aicore_use + self.max_mask * 8) // self.max_mask // 16 * self.max_mask * 16
+        else:
+            self.centroids_num_each_core = actual_num // self.aicore_use // self.max_mask // 16 * self.max_mask * 16
         self.centroids_num_last_core = actual_num - (self.aicore_use - 1) * self.centroids_num_each_core
 
     def distance_compute_each_loop(self, aicore_move_offset, aicore_centroids_num, move_num):
@@ -235,6 +262,40 @@ class DistanceInt8CosMaxs:
                                    res_ub[loop_index, 0],
                                    inner_product_ub[0, loop_index, 0], res_ub[loop_index, 0],
                                    centroids_align_16 // 16, 1, 1, 1, 1, queries_align, 1)
+        
+        with self.tik_instance.if_scope(self.use_mask > 0):
+            min_val_ub = self.tik_instance.Tensor("float16", (128,), name="min_val_ub", scope=tik.scope_ubuf)
+            self.tik_instance.vec_dup(self.fp16_mask, min_val_ub, self.default_scalar, 1, 8)
+            
+            # malloc memory on chip
+            sel_ub = self.tik_instance.Tensor("uint8", (queries_move_num, (self.centroids_num_each_loop + 7) // 8),
+                                              name="sel_ub", scope=tik.scope_ubuf)
+            with self.tik_instance.for_range(0, queries_move_num) as j:
+                # move data from input_mask_gm to sel_ub
+                self.tik_instance.data_move(
+                    sel_ub[j, 0],
+                    self.input_mask_gm[j * self.mask_len
+                                       + (self.mask_offset + aicore_move_offset + centroids_move_offset) // 8],
+                    0, 1, (self.centroids_num_each_loop + 255) // 256, 8, 8)
+ 
+                # cal the loop need to execute the selection process
+                vsel_loop = self.centroids_num_each_loop // self.fp16_mask
+                if vsel_loop > 0:
+                    for vloop in range(vsel_loop):
+                        # sel_ub can not use repeat times > 1, use for + offset
+                        voffset = vloop * self.fp16_mask
+                        # select value in res_ub according to sel_ub
+                        self.tik_instance.vec_sel(self.fp16_mask, 0, res_ub[j, voffset],
+                                                  sel_ub[j, voffset // 8], res_ub[j, voffset],
+                                                  min_val_ub, 1, 8, 8, 0)
+ 
+                # handle tail in case of self.centroids_num_each_loop % self.fp16_mask != 0
+                vsel_last = self.centroids_num_each_loop % self.fp16_mask
+                if vsel_last > 0:
+                    vsel_offset = vsel_loop * self.fp16_mask
+                    self.tik_instance.vec_sel(vsel_last, 0, res_ub[j, vsel_offset], sel_ub[j, vsel_offset // 8],
+                                              res_ub[j, vsel_offset], min_val_ub, 1, 8, 8, 0)   
+
         self.tik_instance.data_move(self.output_distances_gm[0, aicore_move_offset + centroids_move_offset],
                                     res_ub,
                                     0, queries_move_num, self.centroids_num_each_loop // 16, 0,
@@ -285,7 +346,7 @@ class DistanceInt8CosMaxs:
                                                name="flag_ub", scope=tik.scope_ubuf)
 
             flag_ub[0].set_as(one)
-            self.tik_instance.data_move(self.output_flag_gm[block_index * 16],
+            self.tik_instance.data_move(self.output_flag_gm[block_index, 0],
                                         flag_ub,
                                         0, 1, 1, 0, 0)
 
@@ -298,6 +359,7 @@ class DistanceInt8CosMaxs:
         self.tik_instance.BuildCCE(kernel_name=self.kernel_name,
                                    inputs=[
                                        self.input_queries_gm,
+                                       self.input_mask_gm,
                                        self.input_centroids_gm,
                                        self.input_queries_m_gm,
                                        self.input_centroids_m_gm,
@@ -309,6 +371,7 @@ class DistanceInt8CosMaxs:
 
 
 def distance_int8_cos_maxs(input_queries,
+                           input_mask,
                            input_centroids,
                            input_queries_m,
                            input_centroids_m,
@@ -346,7 +409,7 @@ def distance_int8_cos_maxs(input_queries,
     -------
     None
     """
-    distance_cos_maxs = DistanceInt8CosMaxs(input_queries, input_centroids,
+    distance_cos_maxs = DistanceInt8CosMaxs(input_queries, input_mask, input_centroids,
                                             input_queries_m, input_centroids_m, input_actual_num,
                                             output_distances, output_max_dist, output_flag, kernel_name)
     tik_instance = distance_cos_maxs.get_tik_instance()

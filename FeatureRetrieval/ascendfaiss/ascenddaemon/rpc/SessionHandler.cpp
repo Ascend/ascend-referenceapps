@@ -199,6 +199,9 @@ int SessionHandler::HandleRpcIndexInt8(int rpcType, int msgLen)
         case RPC_INDEX_INT8_SEARCH:
             HANDLE_RPC(IndexInt8SearchRequest, IndexInt8SearchResponse, IndexInt8Search);
             break;
+        case RPC_INDEX_INT8_SEARCH_FILTER:
+            HANDLE_RPC(IndexInt8SearchFilterRequest, IndexInt8SearchResponse, IndexInt8SearchFilter);
+            break;
         case RPC_INDEX_INT8_REMOVE_IDS:
             HANDLE_RPC(IndexRemoveIdsRequest, IndexRemoveIdsResponse, IndexInt8RemoveIds);
             break;
@@ -493,7 +496,7 @@ int SessionHandler::CreateIndexFlat(const CreateIndexFlatRequest *req, CreateInd
     CommonResponse_ErrorCode result = CommonResponse_ErrorCode_OK;
     IndexFlat *index = nullptr;
     switch (req->metric()) {
-        case MetricType::METRIC_L2: 
+        case MetricType::METRIC_L2:
             LOG_IF_EXCEPT(index = new IndexFlatL2(req->dim(), req->resource()));
             break;
         case MetricType::METRIC_INNER_PRODUCT: 
@@ -1354,6 +1357,34 @@ int SessionHandler::IndexInt8Search(const IndexInt8SearchRequest *req, IndexInt8
 
     resp->set_distance(distance.data(), distance.size() * sizeof(float16_t));
     resp->set_label(label.data(), label.size() * sizeof(uint32_t));
+    resp->mutable_result()->set_err(result);
+    return 0;
+}
+
+int SessionHandler::IndexInt8SearchFilter(const IndexInt8SearchFilterRequest *req, IndexInt8SearchResponse *resp)
+{
+    CommonResponse_ErrorCode result = CommonResponse_ErrorCode_OK;
+    index_id_t indexId = req->indexid();
+    int32_t n = req->n();
+    int32_t dim = req->dim();
+    int32_t k = req->k();
+    const std::string &query = req->query();
+    const std::string &mask = req->mask();
+    RPC_ASSERT(query.size() == n * dim * sizeof(uint16_t));
+
+    RPC_ASSERT_FMT(indices.find(indexId) != indices.end(), "!!!Invalid index id: %d\n", indexId);
+    RPC_TIME_LOG("index %d search filter actual start\n", indexId);
+    std::vector<Index::idx_t> label(n * k);
+    std::vector<float16_t> distance(n * k);
+    IndexInt8* pIndex = reinterpret_cast<IndexInt8 *>(indices[indexId]);
+    RPC_REQUIRE_NOT_NULL(pIndex);
+    LOG_IF_EXCEPT(pIndex->search(n, reinterpret_cast<const int8_t *>(query.data()), k,
+                                 distance.data(), reinterpret_cast<Index::idx_t *>(label.data()),
+                                 const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(mask.data()))));
+    RPC_TIME_LOG("index %d search filter end\n", indexId);
+
+    resp->set_distance(distance.data(), distance.size() * sizeof(float16_t));
+    resp->set_label(label.data(), label.size() * sizeof(Index::idx_t));
     resp->mutable_result()->set_err(result);
     return 0;
 }
