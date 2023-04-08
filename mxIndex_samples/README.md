@@ -18,7 +18,8 @@
 |    TestAscendIndexFalt                 |   FP32转FP16 暴搜demo                                          |
 |    TestAscendIndexInt8Falt             |   底库数据为int8 暴搜demo                                          |
 |    TestAscendIndexInt8FaltWithSQ       |   FP32 SQ 量化为 int8 后, 暴搜demo                                  |
-|    TestAscendIndexSQ                   |   FP32 SQ 量化为Int8后，反量化暴搜demo                                          |
+|    TestAscendIndexSQ                   |   FP32 SQ 量化为Int8后，反量化暴搜demo                              |
+|    TestAscendIndexBinaryFlat           |   二值化底库特征暴搜demo                              |
 |    TestAscendIndexTS                   |   时空库，带属性过滤demo                                          |
 |    TestAscendIndexTSV2                 |   时空库临时版本，正式mxIndex版本中，请使用TestAscendIndexTS，并删除TestAscendIndexTSV2)                                          |
 
