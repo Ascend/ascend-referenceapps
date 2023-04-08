@@ -20,13 +20,14 @@
 |    TestAscendIndexInt8FaltWithSQ       |   FP32 SQ 量化为 int8 后, 暴搜demo                                  |
 |    TestAscendIndexSQ                   |   FP32 SQ 量化为Int8后，反量化暴搜demo                                          |
 |    TestAscendIndexTS                   |   时空库，带属性过滤demo                                          |
-|    TestAscendIndexTSV2                 |   时空库，带属性过滤demo(临时版本，正式mxIndex版本中，请使用TestAscendIndexTS)                                          |
+|    TestAscendIndexTSV2                 |   时空库临时版本，正式mxIndex版本中，请使用TestAscendIndexTS，并删除TestAscendIndexTSV2)                                          |
 
 #### Demo使用说明
 
-1.  请先正确安装MindSDK Index组件
+1.  请先正确安装MindSDK Index组件及其依赖的driver、firmware、Ascend toolkit、OpenBLAS、Faiss
 2.  执行一下命令编译demo
 ``` shell
 bash build.sh
  ```
+       
 3.  在build目录中找到对应的二进制可执行文件
