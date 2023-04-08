@@ -12,6 +12,15 @@
 
 1.  MindX SDK index [安装文档](https://www.hiascend.com/document/detail/zh/mind-sdk/300/featureretrieval/mxindexfrug/mxindexfrug_0001.html)
 
+#### 测试用例说明
+| 用例名称 | 用例说明 |
+| ---------- | ------------------------------------------- |
+|    TestAscendIndexFalt                 |   FP32转FP16 暴搜demo                                          |
+|    TestAscendIndexInt8Falt             |   底库数据为int8 暴搜demo                                          |
+|    TestAscendIndexInt8FaltWithSQ       |   FP32 sq 量化为 int8 后, 暴搜demo                                  |
+|    TestAscendIndexSQ                   |   FP32 SQ 量化为Int8后，反量化暴搜demo                                          |
+|    TestAscendIndexTS                   |   时空库，带属性过滤demo                                          |
+|    TestAscendIndexTSV2                 |   时空库，带属性过滤demo(临时版本，正式mxIndex版本中，请使用TestAscendIndexTS)                                          |
 
 #### Demo使用说明
 
