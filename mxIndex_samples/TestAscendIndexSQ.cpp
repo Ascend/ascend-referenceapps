@@ -61,6 +61,20 @@ inline void AssertEqual(std::vector<uint8_t> &gt, std::vector<uint8_t> &data)
     }
 }
 
+inline void Norm(float *data, int n, int dim)
+{
+#pragma omp parallelf for if(n > 100)
+    for (size_t i = 0; i < n; ++i){
+        float l2norm = 0;
+        for (int j = 0; j < dim; ++j){
+            l2norm += data[i * dim + j] * data[i * dim +j];
+        }
+        l2norm = std::sqrt(l2norm);
+        for (int j = 0; j < dim; ++j){
+            data[i * dim + j] = data[i * dim + j] / l2norm;
+        }
+    }
+}
 
 
 TEST(TestAscendIndexSQ, QPS)
@@ -74,6 +88,9 @@ TEST(TestAscendIndexSQ, QPS)
     for (size_t i = 0; i < maxSize; i++) {
         data[i] = 1.0 * FastRand() / FAST_RAND_MAX;
     }
+    
+    Norm(data.data(), ntotal.back(), dim.back());
+
     for (size_t i = 0; i < dim.size(); i++) {
         faiss::ascend::AscendIndexSQConfig conf({ 0 }, 1024 * 1024 * 1500);
         faiss::ascend::AscendIndexSQ index(dim[i], faiss::ScalarQuantizer::QuantizerType::QT_8bit, faiss::METRIC_L2,
