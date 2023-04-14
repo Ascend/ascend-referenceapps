@@ -70,7 +70,7 @@ inline int FastRand(void)
     return (g_seed >> rshiftNum) & FAST_RAND_MAX;
 }
 
-inline Norm(float *data, int n, int dim)
+inline void Norm(float *data, int n, int dim)
 {
 #pragma omp parallelf for if(n > 100)
     for (size_t i = 0; i < n; ++i){
