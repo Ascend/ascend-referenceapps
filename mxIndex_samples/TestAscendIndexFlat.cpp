@@ -70,6 +70,21 @@ inline int FastRand(void)
     return (g_seed >> rshiftNum) & FAST_RAND_MAX;
 }
 
+inline Norm(float *data, int n, int dim)
+{
+#pragma omp parallelf for if(n > 100)
+    for (size_t i = 0; i < n; ++i){
+        float l2norm = 0;
+        for (int j = 0; j < dim; ++j){
+            l2norm += data[i * dim + j] * data[i * dim +j];
+        }
+        l2norm = std::sqrt(l2norm);
+        for (int j = 0; j < dim; ++j){
+            data[i * dim + j] = data[i * dim + j] / l2norm;
+        }
+    }
+}
+
 TEST(TestAscendIndexFlat, QPS)
 {
     int dim = 512;
@@ -85,6 +100,9 @@ TEST(TestAscendIndexFlat, QPS)
     faiss::ascend::AscendIndexFlat index(dim, faiss::METRIC_L2, conf);
     index.verbose = true;
     
+    // 标准化
+    Norm(data.data(), ntotal, dim);
+
     index.add(ntotal, data.data());
     {
         int getTotal = 0;
