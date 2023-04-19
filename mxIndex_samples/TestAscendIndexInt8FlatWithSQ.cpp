@@ -111,7 +111,7 @@ TEST(TestAscendIndexInt8Flat, QPS)
     printf("start generate data\n");
     std::vector<int8_t> base(ntotal * dim);
     std::vector<float> baseFp(ntotal * dim);
-     for (int i = 0; i < ntotal * dim; i++) {
+     for (size_t i = 0; i < ntotal * dim; i++) {
         baseFp[i] = drand48();
      }
     printf("generate data finished\n");
@@ -163,7 +163,7 @@ TEST(TestAscendIndexInt8Flat, Recall)
     printf("start generate data\n");
     std::vector<int8_t> base(ntotal * dim);
     std::vector<float> baseFp(ntotal * dim);
-     for (int i = 0; i < ntotal * dim; i++) {
+     for (size_t i = 0; i < ntotal * dim; i++) {
         baseFp[i] = drand48();
      }
     printf("generate data finished\n");
