@@ -150,31 +150,35 @@ TEST(TestAscendIndexInt8Flat, Acc)
     index.add(ntotal, base.data());
     printf("add finish\n");
     int k = 100;
-    std::vector<float> dist(searchNum[n] * k, 0);
-    std::vector<faiss::Index::idx_t> label(searchNum[n] * k, 0);
+    std::vector<float> dist(searchNum * k, 0);
+    std::vector<faiss::Index::idx_t> label(searchNum * k, 0);
     printf("search start\n");
-    index.search(searchNum[n], base.data(), k, dist.data(), label.data());
+    index.search(searchNum, base.data(), k, dist.data(), label.data());
     printf("search finish\n");
     printf("search compute distance by cpu\n");  
-    std::vector<faiss::Index::idx_t> gtLabel);
-    for (int q = 0; i < searchNum; q++) {
+    std::vector<faiss::Index::idx_t> gtLabel;
+    for (int q = 0; q < searchNum; q++) {
          std::vector<float> cpuDist(ntotal,0);
            for (int i = 0; i < ntotal; i++) {
-               int sum = 0
+               int sum = 0;
                  for (int d = 0; d < dim; d++) {
-                     sum += (base[q * dim +d] - base[i * dim + d]) * (base[q * dim +d] - base[i * dim + d])
+                     sum += (base[q * dim +d] - base[i * dim + d]) * (base[q * dim +d] - base[i * dim + d]);
                  }
-                 cpuDist[i] = sqrt[sum];
+                 cpuDist[i] = sqrt(sum);
            }
            std::vector<std::pair<int,float>> cpuRes;
-            for (int i = 0; i < ntotal; i++) {
-                cpuRes.push_back({i,cpuDist[i]})
+            for (int i = 0; i < ntotal; ++i) {
+                cpuRes.push_back({i,cpuDist[i]});
+            }
+            std::sort(cpuRes.begin(),cpuRes.end(),[](std::pair<int,float> a, std::pair<int,float> b) -> bool {return a.second < b.second});
+            for (int d = 0; d < k; ++d) {
+                gtLabel.push_back(cpuRes[d].first);
             }
     }
 
      for (int i = 0; i < searchNum; i++) {
           for (int j = 0; j < k; i++) {
-              printf("label:%d-NpuLabel:%d ",gtLabel[i * k + j],label[i * k + j])
+              printf("label:%d-NpuLabel:%d ",gtLabel[i * k + j],label[i * k + j]);
           }
      }
 
