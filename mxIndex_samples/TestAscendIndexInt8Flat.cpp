@@ -170,19 +170,20 @@ TEST(TestAscendIndexInt8Flat, Acc)
             for (int i = 0; i < ntotal; ++i) {
                 cpuRes.push_back({i,cpuDist[i]});
             }
-            std::sort(cpuRes.begin(),cpuRes.end(),[](std::pair<int,float> a, std::pair<int,float> b) -> bool {return a.second < b.second});
+            std::sort(cpuRes.begin(),cpuRes.end(),[](std::pair<int,float> a, std::pair<int,float> b) -> bool {return a.second < b.second;});
             for (int d = 0; d < k; ++d) {
                 gtLabel.push_back(cpuRes[d].first);
             }
     }
 
      for (int i = 0; i < searchNum; i++) {
-          for (int j = 0; j < k; i++) {
+          for (int j = 0; j < k; j++) {
               printf("label:%d-NpuLabel:%d ",gtLabel[i * k + j],label[i * k + j]);
           }
+          printf("\n");
      }
 
-     recallMap Top = calRecall(label,gtLabel.data,searchNum);
+     recallMap Top = calRecall(label,gtLabel.data(),searchNum);
 
      printf("Recall %d: @1 = %.2f, @10 = %.2f, @100 = %.2f \n",k,Top[1],Top[10],Top[100]);
 
