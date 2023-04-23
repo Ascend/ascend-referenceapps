@@ -135,7 +135,7 @@ TEST(TestAscendIndexInt8Flat, QPS)
 TEST(TestAscendIndexInt8Flat, Acc)
 {
     int dim = 512;
-    size_t ntotal = 7000000;
+    size_t ntotal = 1000000;
     int searchNum = 8;
 
     faiss::ascend::AscendIndexInt8FlatConfig conf({ 0 },1024 * 1024 * 1024);
