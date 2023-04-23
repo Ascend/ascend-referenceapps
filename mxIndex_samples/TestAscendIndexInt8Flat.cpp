@@ -24,6 +24,7 @@
 #include <faiss/index_io.h>
 
 namespace {
+    typedef std::unordered_map<int,float> recallMap;
 inline void GenerateCodes(int8_t *codes, int total, int dim, int seed = -1)
 {
     std::default_random_engine e((seed > 0) ? seed : time(nullptr));
@@ -50,6 +51,43 @@ inline void AssertInt8Equal(size_t count, const int8_t *gt, const int8_t *data)
     for (size_t i = 0; i < count; i++) {
         ASSERT_TRUE(gt[i] == data[i]) << "i: " << i << " gt: " << int(gt[i]) << " data: " << int(data[i]) << std::endl;
     }
+}
+
+template<class T> recallMap calRecall(std::vector<T> label, int64_t *gt, int queryNum)
+{
+    recallMap Map;
+    Map[1] = 0;
+    Map[10] = 0;
+    Map[100] = 0;
+    int k = label.size() / queryNum;
+
+    for(int i = 0; i < queryNum; i++){
+        std::set<int> labelSet(label.begin() + i * k, label.begin() + i * k + k);
+        if (labelSet.size() != k) {
+            printf("current query have duplicated labels!!! \n");
+        }
+         for(int j = 0; j < k; j++){
+            if(gt[i * k] == label[i * k + j]){
+                Map[100]++;
+                switch (j){
+                    case 0:
+                        Map[1]++;
+                        Map[10]++;
+                        break;
+                    case 1 ... 9: 
+                        Map[10]++;
+                        break;
+                    default: break;
+
+                }
+                break;
+            }
+         }
+    }
+    Map[1] = Map[1] / queryNum * 100;
+    Map[10] = Map[10] / queryNum * 100;
+    Map[100] = Map[100] / queryNum * 100;
+    return Map;
 }
 
 
@@ -93,6 +131,59 @@ TEST(TestAscendIndexInt8Flat, QPS)
     
     
 }
+
+TEST(TestAscendIndexInt8Flat, Acc)
+{
+    int dim = 512;
+    size_t ntotal = 7000000;
+    int searchNum = 8;
+
+    faiss::ascend::AscendIndexInt8FlatConfig conf({ 0 },1024 * 1024 * 1024);
+    faiss::ascend::AscendIndexInt8Flat index(dim, faiss::METRIC_L2, conf);
+    index.verbose = true;
+
+    printf("generate data\n");
+    std::vector<int8_t> base(ntotal * dim);
+    GenerateCodes(base.data(), ntotal, dim);
+
+    printf("add data\n");
+    index.add(ntotal, base.data());
+    printf("add finish\n");
+    int k = 100;
+    std::vector<float> dist(searchNum[n] * k, 0);
+    std::vector<faiss::Index::idx_t> label(searchNum[n] * k, 0);
+    printf("search start\n");
+    index.search(searchNum[n], base.data(), k, dist.data(), label.data());
+    printf("search finish\n");
+    printf("search compute distance by cpu\n");  
+    std::vector<faiss::Index::idx_t> gtLabel);
+    for (int q = 0; i < searchNum; q++) {
+         std::vector<float> cpuDist(ntotal,0);
+           for (int i = 0; i < ntotal; i++) {
+               int sum = 0
+                 for (int d = 0; d < dim; d++) {
+                     sum += (base[q * dim +d] - base[i * dim + d]) * (base[q * dim +d] - base[i * dim + d])
+                 }
+                 cpuDist[i] = sqrt[sum];
+           }
+           std::vector<std::pair<int,float>> cpuRes;
+            for (int i = 0; i < ntotal; i++) {
+                cpuRes.push_back({i,cpuDist[i]})
+            }
+    }
+
+     for (int i = 0; i < searchNum; i++) {
+          for (int j = 0; j < k; i++) {
+              printf("label:%d-NpuLabel:%d ",gtLabel[i * k + j],label[i * k + j])
+          }
+     }
+
+     recallMap Top = calRecall(label,gtLabel.data,searchNum);
+
+     printf("Recall %d: @1 = %.2f, @10 = %.2f, @100 = %.2f \n",k,Top[1],Top[10],Top[100]);
+
+}
+
 } // namespace
 
 int main(int argc, char **argv)
