@@ -172,9 +172,14 @@ TEST(TestAscendIndexFlat, Acc){
     int dim = 512;
     size_t ntotal = 1000000;
     size_t maxSize = ntotal * dim;
-    faiss::MetricType type = faiss:METRIC_L2;
+    faiss::MetricType type = faiss::METRIC_L2;
     int topk = 100;
     int queryNum = 8;
+    printf("generate data\n");
+    std::vector<float> data(maxSize);
+    for (size_t i = 0; i < maxSize; i++) {
+        data[i] = 1.0 * FastRand() / FAST_RAND_MAX;
+    }
     faiss::ascend::AscendIndexFlatConfig conf({ 0 },1024 * 1024 *1500);
     faiss::ascend::AscendIndexFlat index(dim, faiss::METRIC_L2, conf);
     index.verbose = true;
@@ -183,16 +188,18 @@ TEST(TestAscendIndexFlat, Acc){
     Norm(data.data(), ntotal, dim);
 
     index.add(ntotal, data.data());
-    
+    printf("start search by npu\n");
+    std::vector<float> dist(queryNum * topk, 0);
+    std::vector<faiss::Index::idx_t> label(queryNum * topk, 0);
+    index.search(queryNum, data.data(), topk, dist.data(), label.data());
+
+    printf("start add by cpu\n");
     faiss::IndexFlat faissIndex(dim,type);
     faissIndex.add(ntotal, data.data());
     std::vector<float> cpuDist(queryNum * topk, 0);
     std::vector<faiss::Index::idx_t> cpuLabel(queryNum * topk, 0);
+    printf("start search by cpu\n");
     faissIndex.search(queryNum, data.data(), topk, cpuDist.data(), cpuLabel.data());
-
-    std::vector<float> dist(queryNum * topk, 0);
-    std::vector<faiss::Index::idx_t> label(queryNum * topk, 0);
-    index.search(queryNum, data.data(), topkk, dist.data(), label.data());
     recallMap Top = calRecall(label, cpuLabel.data(), queryNum);
     printf("Recall %d: @1 = %.2f, @10 = %.2f, @100 = %.2f \n",topk,Top[1],Top[10],Top[100]);    
 
