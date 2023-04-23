@@ -176,12 +176,12 @@ TEST(TestAscendIndexInt8Flat, Acc)
             }
     }
 
-     for (int i = 0; i < searchNum; i++) {
+    /* for (int i = 0; i < searchNum; i++) {
           for (int j = 0; j < k; j++) {
               printf("label:%d-NpuLabel:%d ",gtLabel[i * k + j],label[i * k + j]);
           }
           printf("\n");
-     }
+     } */
 
      recallMap Top = calRecall(label,gtLabel.data(),searchNum);
 
