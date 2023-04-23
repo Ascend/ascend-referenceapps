@@ -61,15 +61,15 @@ inline void sqEncode(const faiss::ScalarQuantizer sq, const float *base, int8_t 
     }
 }
 
-template<class T> recallMap calRecall(std::vector<T> label, int64_t *gt, int dim)
+template<class T> recallMap calRecall(std::vector<T> label, int64_t *gt, int queryNum)
 {
     recallMap Map;
     Map[1] = 0;
     Map[10] = 0;
     Map[100] = 0;
-    int k = label.size() / dim;
+    int k = label.size() / queryNum;
 
-    for(int i = 0; i < dim; i++){
+    for(int i = 0; i < queryNum; i++){
         std::set<int> labelSet(label.begin() + i * k, label.begin() + i * k + k);
         if (labelSet.size() != k) {
             printf("current query have duplicated labels!!! \n");
@@ -92,9 +92,9 @@ template<class T> recallMap calRecall(std::vector<T> label, int64_t *gt, int dim
             }
          }
     }
-    Map[1] = Map[1] / dim * 100;
-    Map[10] = Map[10] / dim * 100;
-    Map[100] = Map[100] / dim * 100;
+    Map[1] = Map[1] / queryNum * 100;
+    Map[10] = Map[10] / queryNum * 100;
+    Map[100] = Map[100] / queryNum * 100;
     return Map;
 }
 
@@ -171,7 +171,8 @@ TEST(TestAscendIndexInt8Flat, Recall)
     sq.train(ntotal,baseFp.data());
     sqEncode(sq,baseFp.data(),base.data(),ntotal);
     printf("add data\n");
-    index.add(ntotal, base.data());
+    index.add(ntotal, base.
+    data());
 
     int k = 100;
     std::vector<faiss::Index::idx_t> gt(searchNum * k, 0);
