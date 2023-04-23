@@ -29,6 +29,9 @@
 
 
 namespace {
+unsigned int g_seed;
+const int FAST_RAND_MAX = 0x7FFF;
+ typedef std::unordered_map<int,float> recallMap;
 inline double GetMillisecs()
 {
     struct timeval tv = { 0, 0 };
@@ -47,17 +50,46 @@ inline void AssertEqual(const std::vector<float> &gt, const std::vector<float> &
 }
 
 
-
-
-namespace {
-unsigned int g_seed;
-const int FAST_RAND_MAX = 0x7FFF;
-}
-
-inline void FastSrand(int seed)
+template<class T> recallMap calRecall(std::vector<T> label, int64_t *gt, int queryNum)
 {
-    g_seed = seed;
+    recallMap Map;
+    Map[1] = 0;
+    Map[10] = 0;
+    Map[100] = 0;
+    int k = label.size() / queryNum;
+
+    for(int i = 0; i < queryNum; i++){
+        std::set<int> labelSet(label.begin() + i * k, label.begin() + i * k + k);
+        if (labelSet.size() != k) {
+            printf("current query have duplicated labels!!! \n");
+        }
+         for(int j = 0; j < k; j++){
+            if(gt[i * k] == label[i * k + j]){
+                Map[100]++;
+                switch (j){
+                    case 0:
+                        Map[1]++;
+                        Map[10]++;
+                        break;
+                    case 1 ... 9: 
+                        Map[10]++;
+                        break;
+                    default: break;
+
+                }
+                break;
+            }
+         }
+    }
+    Map[1] = Map[1] / queryNum * 100;
+    Map[10] = Map[10] / queryNum * 100;
+    Map[100] = Map[100] / queryNum * 100;
+    return Map;
 }
+
+
+
+
 
 // Compute a pseudorandom integer.
 // Output value in range [0, 32767]
@@ -135,6 +167,38 @@ TEST(TestAscendIndexFlat, QPS)
             1000 * searchNum[n] * loopTimes / (te - ts));
     }
 }
+
+TEST(TestAscendIndexFlat, Acc){
+    int dim = 512;
+    size_t ntotal = 1000000;
+    size_t maxSize = ntotal * dim;
+    faiss::MetricType type = faiss:METRIC_L2;
+    int topk = 100;
+    int queryNum = 8;
+    faiss::ascend::AscendIndexFlatConfig conf({ 0 },1024 * 1024 *1500);
+    faiss::ascend::AscendIndexFlat index(dim, faiss::METRIC_L2, conf);
+    index.verbose = true;
+    
+    // 标准化
+    Norm(data.data(), ntotal, dim);
+
+    index.add(ntotal, data.data());
+    
+    faiss::IndexFlat faissIndex(dim,type);
+    faissIndex.add(ntotal, data.data());
+    std::vector<float> cpuDist(queryNum * topk, 0);
+    std::vector<faiss::Index::idx_t> cpuLabel(queryNum * topk, 0);
+    faissIndex.search(queryNum, data.data(), topk, cpuDist.data(), cpuLabel.data());
+
+    std::vector<float> dist(queryNum * topk, 0);
+    std::vector<faiss::Index::idx_t> label(queryNum * topk, 0);
+    index.search(queryNum, data.data(), topkk, dist.data(), label.data());
+    recallMap Top = calRecall(label, cpuLabel.data(), queryNum);
+    printf("Recall %d: @1 = %.2f, @10 = %.2f, @100 = %.2f \n",topk,Top[1],Top[10],Top[100]);    
+
+}
+
+
 } // namespace
 
 int main(int argc, char **argv)
