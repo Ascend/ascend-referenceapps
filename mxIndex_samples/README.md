@@ -21,7 +21,7 @@
 |    TestAscendIndexSQ                   |   FP32 SQ 量化为Int8后，反量化暴搜demo                              |
 |    TestAscendIndexBinaryFlat           |   二值化底库特征汉明距离暴搜demo                              |
 |    TestAscendIndexTS                   |   时空库，带属性过滤demo                                          |
-|    TestAscendIndexTSV2                 |   时空库临时版本，正式mxIndex版本中，请使用TestAscendIndexTS，并删除TestAscendIndexTSV2)                                          |
+|                                            |
 
 #### Demo使用说明
 
