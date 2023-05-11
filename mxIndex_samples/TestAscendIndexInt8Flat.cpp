@@ -22,6 +22,7 @@
 #include <faiss/impl/AuxIndexStructures.h>
 #include <faiss/Clustering.h>
 #include <faiss/index_io.h>
+#include <algorithm>
 
 namespace {
     typedef std::unordered_map<int,float> recallMap;
