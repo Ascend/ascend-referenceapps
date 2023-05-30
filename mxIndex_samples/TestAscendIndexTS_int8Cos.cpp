@@ -35,11 +35,11 @@ using AttrFilter = faiss::ascend::AttrFilter;
 
 std::independent_bits_engine<std::mt19937, 8, uint8_t> engine(1);
 
-void FeatureGenerator(std::vector<uint8_t> &features)
+void FeatureGenerator(std::vector<int8_t> &features)
 {
     size_t n = features.size();
     for (size_t i = 0; i < n; ++i) {
-        features[i] = engine();
+        features[i] = engine()-128;
     }
 }
 
@@ -83,7 +83,7 @@ TEST(TestAscendIndexTS, add)
     faiss::ascend::AscendIndexTS * tsIndex = new faiss::ascend::AscendIndexTS();
     tsIndex->Init(deviceId, dim, tokenNum, faiss::ascend::AlgorithmType::FLAT_COS_INT8);
 
-    std::vector<uint8_t> features(ntotal * dim);
+    std::vector<int8_t> features(ntotal * dim);
     printf("[---add-----------]\n");
     FeatureGenerator(features);
     std::vector<int64_t> labels;
@@ -106,7 +106,7 @@ TEST(TestAscendIndexTS, GetFeatureByLabel)
     int dim = 512;
     int maxTokenId = 2500;
     int ntotal = 100000;
-    std::vector<uint8_t> base(ntotal * dim);
+    std::vector<int8_t> base(ntotal * dim);
     FeatureGenerator(base);
     std::vector<int64_t> label(ntotal);
     std::iota(label.begin(), label.end(), 0);
@@ -117,7 +117,7 @@ TEST(TestAscendIndexTS, GetFeatureByLabel)
     EXPECT_EQ(ret, 0);
     ret = index->AddFeature(ntotal, base.data(), attrs.data(), label.data());
     EXPECT_EQ(ret, 0);
-    std::vector<uint8_t>getBase(ntotal * dim);
+    std::vector<int8_t>getBase(ntotal * dim);
     auto ts = GetMillisecs();
     ret = index->GetFeatureByLabel(ntotal, label.data(), getBase.data());
     auto te = GetMillisecs();
@@ -135,7 +135,7 @@ TEST(TestAscendIndexTS, DeleteFeatureByLabel)
     int dim = 512;
     int maxTokenId = 2500;
     int ntotal = 1000000;
-    std::vector<uint8_t> base(ntotal * dim);
+    std::vector<int8_t> base(ntotal * dim);
     FeatureGenerator(base);
     std::vector<int64_t> label(ntotal);
     std::iota(label.begin(), label.end(), 0);
@@ -169,7 +169,7 @@ TEST(TestAscendIndexTS, DeleteFeatureByToken)
     int dim = 512;
     int maxTokenId = 2500;
     int ntotal = 1000000;
-    std::vector<uint8_t> base(ntotal * dim);
+    std::vector<int8_t> base(ntotal * dim);
     FeatureGenerator(base);
     std::vector<int64_t> label(ntotal);
     std::iota(label.begin(), label.end(), 0);
@@ -205,7 +205,7 @@ TEST(TestAscendIndexTS, Acc)
     auto ret = tsIndex->Init(deviceId, dim, tokenNum, faiss::ascend::AlgorithmType::FLAT_COS_INT8);
     EXPECT_EQ(ret, 0);
 
-    std::vector<uint8_t> features(ntotal * dim);
+    std::vector<int8_t> features(ntotal * dim);
     FeatureGenerator(features);
     for (size_t i = 0; i < addNum; i++) {
         std::vector<int64_t> labels;
@@ -295,7 +295,7 @@ TEST(TestAscendIndexTS, SearchNoShareQPS)
     auto ret = tsIndex->Init(deviceId, dim, tokenNum, faiss::ascend::AlgorithmType::FLAT_COS_INT8);
     EXPECT_EQ(ret, 0);
 
-    std::vector<uint8_t> features(ntotal * dim);
+    std::vector<int8_t> features(ntotal * dim);
     printf("[add -----------\n]");
     FeatureGenerator(features);
     for (size_t i = 0; i < addNum; i++) {
@@ -367,7 +367,7 @@ TEST(TestAscendIndexTS, SearchShareQPS)
 
     EXPECT_EQ(ret, 0);
 
-    std::vector<uint8_t> features(ntotal * dim);
+    std::vector<int8_t> features(ntotal * dim);
     printf("[add -----------]\n");
     FeatureGenerator(features);
     for (size_t i = 0; i < addNum; i++) {
@@ -394,7 +394,7 @@ TEST(TestAscendIndexTS, SearchShareQPS)
             std::vector<int64_t> labelRes(queryNum * k, -1);
             std::vector<uint32_t> validnum(queryNum, 1);
             uint32_t size = queryNum * dim;
-            std::vector<uint8_t> querys(size);
+            std::vector<int8_t> querys(size);
             querys.assign(features.begin(), features.begin() + size);
 
             uint32_t setlen = (uint32_t)(((tokenNum + 7) / 8));
