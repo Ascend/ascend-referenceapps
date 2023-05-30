@@ -60,7 +60,7 @@ inline double GetMillisecs()
 }
 } //end of namespace
 
-TEST(TestAscendIndexTS, Init)
+TEST(TestAscendIndexTS_int8Cos, Init)
 {
     uint32_t deviceId = 0;
     uint32_t dim = 512;
@@ -74,7 +74,7 @@ TEST(TestAscendIndexTS, Init)
     delete tsIndex;
 }
 
-TEST(TestAscendIndexTS, add)
+TEST(TestAscendIndexTS_int8Cos, add)
 {
     idx_t ntotal = 1000000;
     uint32_t deviceId = 0;
@@ -101,7 +101,7 @@ TEST(TestAscendIndexTS, add)
     delete tsIndex;
 }
 
-TEST(TestAscendIndexTS, GetFeatureByLabel)
+TEST(TestAscendIndexTS_int8Cos, GetFeatureByLabel)
 {
     int dim = 512;
     int maxTokenId = 2500;
@@ -130,7 +130,7 @@ TEST(TestAscendIndexTS, GetFeatureByLabel)
     }
 }
 
-TEST(TestAscendIndexTS, DeleteFeatureByLabel)
+TEST(TestAscendIndexTS_int8Cos, DeleteFeatureByLabel)
 {
     int dim = 512;
     int maxTokenId = 2500;
@@ -164,7 +164,7 @@ TEST(TestAscendIndexTS, DeleteFeatureByLabel)
     EXPECT_EQ(validNum, ntotal - delCount);
 }
 
-TEST(TestAscendIndexTS, DeleteFeatureByToken)
+TEST(TestAscendIndexTS_int8Cos, DeleteFeatureByToken)
 {
     int dim = 512;
     int maxTokenId = 2500;
@@ -192,7 +192,7 @@ TEST(TestAscendIndexTS, DeleteFeatureByToken)
     EXPECT_EQ(validNum, ntotal / 2);
 }
 
-TEST(TestAscendIndexTS, Acc)
+TEST(TestAscendIndexTS_int8Cos, Acc)
 {
     idx_t ntotal = 1000000;
     uint32_t addNum = 1;
@@ -282,7 +282,7 @@ TEST(TestAscendIndexTS, Acc)
     delete tsIndex;
 }
 
-TEST(TestAscendIndexTS, SearchNoShareQPS)
+TEST(TestAscendIndexTS_int8Cos, SearchNoShareQPS)
 {
     idx_t ntotal = 1000000;
     uint32_t addNum = 10;
@@ -353,7 +353,7 @@ TEST(TestAscendIndexTS, SearchNoShareQPS)
     delete tsIndex;
 }
 
-TEST(TestAscendIndexTS, SearchShareQPS)
+TEST(TestAscendIndexTS_int8Cos, SearchShareQPS)
 {
     idx_t ntotal = 1000000;
     uint32_t addNum = 10;
