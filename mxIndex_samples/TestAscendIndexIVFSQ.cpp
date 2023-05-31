@@ -50,7 +50,7 @@ int main()
 
     printf("generate data\n");
     std::vector<float> data(dim * ntotal);
-    for (int i = 0; i < data.size(); i++) {
+    for (size_t i = 0; i < data.size(); i++) {
         data[i] = drand48();
     }
     Norm(data.data(), ntotal, dim);
