@@ -251,7 +251,7 @@ TEST(TestAscendIndexTS_int8Cos, Acc)
             }
             for (size_t i = 0; i < queryNum; i++) {
                 ASSERT_TRUE(labelRes[i * k] == i);
-                ASSERT_TRUE(distances[i * k] == float(0));
+                ASSERT_TRUE(distances[i * k] > float(0.99) && distances[i * k] < float(1.01));
             }
 
             bitSet[0] = 0x1 << 0 | 0x1 << 1;
@@ -270,11 +270,11 @@ TEST(TestAscendIndexTS_int8Cos, Acc)
             for (size_t i = 0; i < queryNum; i++) {
                 if (i % 4 == 1) {
                     ASSERT_TRUE(labelRes[i * k] == i);
-                    ASSERT_TRUE(distances[i * k] == float(0));
+                    ASSERT_TRUE(distances[i * k] > float(0.99) && distances[i * k] < float(1.01));
                 }
                 else {
                     ASSERT_TRUE(labelRes[i * k] != i);
-                    ASSERT_TRUE(distances[i * k] >= float(0));
+                    ASSERT_TRUE(distances[i * k] <= float(0.3));
                 }
             }
         }
