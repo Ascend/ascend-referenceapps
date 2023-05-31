@@ -20,7 +20,9 @@
 |    TestAscendIndexInt8FaltWithSQ       |   FP32 SQ 量化为 int8 后, 暴搜demo                                  |
 |    TestAscendIndexSQ                   |   FP32 SQ 量化为Int8后，反量化暴搜demo                              |
 |    TestAscendIndexBinaryFlat           |   二值化底库特征汉明距离暴搜demo                              |
-|    TestAscendIndexTS                   |   时空库，带属性过滤demo                                          |
+|    TestAscendIndexTS                   |   时空库，hamming距离，带属性过滤demo                                          |
+|    TestAscendIndexTS_int8Cos           |   时空库，int8 cos距离，带属性过滤demo                                          |
+|    TestAscendIndexIVFSQ.cpp            |   IVFSQ 算法demo                                          |
 |                                            |
 
 #### Demo使用说明
