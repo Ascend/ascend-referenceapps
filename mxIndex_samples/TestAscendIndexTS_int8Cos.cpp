@@ -249,7 +249,7 @@ TEST(TestAscendIndexTS_int8Cos, Acc)
                 tsIndex->Search(queryNum, querys.data(), queryFilters.data(), false, k, labelRes.data(),
                     distances.data(), validnum.data());
             }
-            for (size_t i = 0; i < queryNum; i++) {
+            for (int i = 0; i < queryNum; i++) {
                 ASSERT_TRUE(labelRes[i * k] == i);
                 ASSERT_TRUE(distances[i * k] > float(0.99) && distances[i * k] < float(1.01));
             }
@@ -267,7 +267,7 @@ TEST(TestAscendIndexTS_int8Cos, Acc)
                 tsIndex->Search(queryNum, querys.data(), queryFilters.data(), false, k, labelRes.data(),
                     distances.data(), validnum.data());
             }
-            for (size_t i = 0; i < queryNum; i++) {
+            for (int i = 0; i < queryNum; i++) {
                 if (i % 4 == 1) {
                     ASSERT_TRUE(labelRes[i * k] == i);
                     ASSERT_TRUE(distances[i * k] > float(0.99) && distances[i * k] < float(1.01));
@@ -307,7 +307,8 @@ TEST(TestAscendIndexTS_int8Cos, SearchNoShareQPS)
         std::vector<FeatureAttr> attrs(ntotal);
         FeatureAttrGenerator(attrs);
         auto ts0 = GetMillisecs();
-        tsIndex->AddFeature(ntotal, features.data(), attrs.data(), labels.data());
+        auto res = tsIndex->AddFeature(ntotal, features.data(), attrs.data(), labels.data());
+        EXPECT_EQ(res, 0);
         auto te0 = GetMillisecs();
         printf("add %ld cost %f ms\n", ntotal, te0 - ts0);
     }
@@ -379,7 +380,8 @@ TEST(TestAscendIndexTS_int8Cos, SearchShareQPS)
         std::vector<FeatureAttr> attrs(ntotal);
         FeatureAttrGenerator(attrs);
          auto ts0 = GetMillisecs();
-        tsIndex->AddFeature(ntotal, features.data(), attrs.data(), labels.data());
+        auto res = tsIndex->AddFeature(ntotal, features.data(), attrs.data(), labels.data());
+        EXPECT_EQ(res, 0);
         auto te0 = GetMillisecs();
         printf("add %ld cost %f ms\n", ntotal, te0 - ts0);
     }
@@ -450,8 +452,9 @@ TEST(TestAscendIndexTS_int8Cos, SearchShareWithExtraQPS)
         }
         std::vector<FeatureAttr> attrs(ntotal);
         FeatureAttrGenerator(attrs);
-         auto ts0 = GetMillisecs();
-        tsIndex->AddFeature(ntotal, features.data(), attrs.data(), labels.data());
+        auto ts0 = GetMillisecs();
+        auto res = tsIndex->AddFeature(ntotal, features.data(), attrs.data(), labels.data());
+        EXPECT_EQ(res, 0);
         auto te0 = GetMillisecs();
         printf("add %ld cost %f ms\n", ntotal, te0 - ts0);
     }
