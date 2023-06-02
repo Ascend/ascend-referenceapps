@@ -105,7 +105,7 @@ inline int FastRand(void)
 inline void Norm(float *data, int n, int dim)
 {
 #pragma omp parallelf for if(n > 100)
-    for (size_t i = 0; i < n; ++i){
+    for (int i = 0; i < n; ++i){
         float l2norm = 0;
         for (int j = 0; j < dim; ++j){
             l2norm += data[i * dim + j] * data[i * dim +j];
