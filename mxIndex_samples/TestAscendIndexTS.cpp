@@ -249,7 +249,7 @@ TEST(TestAscendIndexTS, Acc)
                 tsIndex->Search(queryNum, querys.data(), queryFilters.data(), false, k, labelRes.data(),
                     distances.data(), validnum.data());
             }
-            for (size_t i = 0; i < queryNum; i++) {
+            for (int i = 0; i < queryNum; i++) {
                 ASSERT_TRUE(labelRes[i * k] == i);
                 ASSERT_TRUE(distances[i * k] == float(0));
             }
@@ -267,7 +267,7 @@ TEST(TestAscendIndexTS, Acc)
                 tsIndex->Search(queryNum, querys.data(), queryFilters.data(), false, k, labelRes.data(),
                     distances.data(), validnum.data());
             }
-            for (size_t i = 0; i < queryNum; i++) {
+            for (int i = 0; i < queryNum; i++) {
                 if (i % 4 == 1) {
                     ASSERT_TRUE(labelRes[i * k] == i);
                     ASSERT_TRUE(distances[i * k] == float(0));
