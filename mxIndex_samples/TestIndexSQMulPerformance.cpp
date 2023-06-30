@@ -65,7 +65,7 @@ void Norm(float *data, size_t n, size_t dim) {
             l2norm += data[i * dim + j] * data[i * dim + j];
         }
         l2norm = std::sqrt(l2norm);
-
+        if (l2norm == 0) return;
         for (size_t j = 0; j < dim; ++j) {
             data[i * dim + j] = data[i * dim + j] / l2norm;
         }
