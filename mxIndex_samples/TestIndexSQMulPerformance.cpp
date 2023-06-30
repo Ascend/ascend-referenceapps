@@ -53,7 +53,7 @@ inline double GetMillisecs() {
 inline void AssertEqual(std::vector<uint8_t> &gt, std::vector <uint8_t> &data) {
     ASSERT_EQ(gt.size(), data.size());
     for (size_t i = 0; i < gt.size(); i++) {
-        ASSERT_EQ(gt[i],data[i]);
+        ASSERT_EQ(gt[i], data[i]);
     }
 }
 
@@ -72,7 +72,7 @@ void Norm(float *data, size_t n, size_t dim) {
     }
 }
 
-TEST(TestIndexSQ, TwentyIndexQPS) 
+TEST(TestIndexSQ, TwentyIndexQPS)
 {
     size_t ntotal = 300000;
     int indexNum = 20;
