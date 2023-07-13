@@ -20,6 +20,7 @@
 #include <numeric>
 #include <vector>
 #include <random>
+#include <sys/time.h>
 #include <unordered_set>
 
 #include <faiss/ascend/AscendIndexInt8Flat.h>
@@ -27,6 +28,13 @@
 #include <faiss/IndexScalarQuantizer.h>
 #include <faiss/index_io.h>
 #include <faiss/MetaIndexes.h>
+
+inline double GetMillisecs()
+{
+    struct timeval tv = { 0, 0 };
+    gettimeofday(&tv, nullptr);
+    return tv.tv_sec * 1e3 + tv.tv_usec * 1e-3;
+}
 
 void PrintSearch(int k, int searchNum, const std::vector<float> &dist, const std::vector<faiss::Index::idx_t> &label)
 {
@@ -212,11 +220,14 @@ int main(int argc, char **argv)
 
 
         // 落盘cpu index
+        double t1 = GetMillisecs();
         const char *fileName = "int8flat.faiss";
         faiss::write_index(cpuIDMap, fileName);
+        double t2 = GetMillisecs();
+        printf("save cpu index cost time:%f\n", t2 - t1);
 
         // 加载cpu index到ascend idnex
-        faiss::Index *newCpuIndex = faiss::read_index(fileName);
+        faiss::IndexIDMap *newCpuIndex = dynamic_cast<faiss::IndexIDMap *>(faiss::read_index(fileName));
         faiss::ascend::AscendIndexInt8Flat *newAscendIndex = dynamic_cast<faiss::ascend::AscendIndexInt8Flat *>(
             faiss::ascend::index_int8_cpu_to_ascend(devices, newCpuIndex));
 
