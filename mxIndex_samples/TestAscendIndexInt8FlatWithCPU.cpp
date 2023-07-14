@@ -75,7 +75,7 @@ void CpuIndexAdd(faiss::IndexIDMap *cpuIDMap, int ntotal, std::vector<int8_t> &b
     cpuIDMap->id_map.insert(cpuIDMap->id_map.end(), ids.begin(), ids.end());
 }
 
-size_t RemoveImpl(faiss::IndexIDMap *cpuIDMap, std::vector<faiss::Index::idx_t> &removes)
+size_t RemoveImpl(faiss::IndexIDMap *cpuIDMap, std::vector<size_t> &removes)
 {
     auto cpuSQ = dynamic_cast<faiss::IndexScalarQuantizer *>(cpuIDMap->index);
     std::sort(removes.rbegin(), removes.rend());
@@ -96,20 +96,21 @@ size_t RemoveImpl(faiss::IndexIDMap *cpuIDMap, std::vector<faiss::Index::idx_t> 
 }
 
 void GetRemoveIDS(faiss::IndexIDMap *cpuIDMap, const std::unordered_set<faiss::Index::idx_t> &idSet,
-                  std::vector<faiss::Index::idx_t> &removes)
+                  std::vector<size_t> &removes)
 {
-    for (auto it = cpuIDMap->id_map.begin(); it != cpuIDMap->id_map.end(); it++) {
-        if (idSet.find(*it) != idSet.end()) {
-            auto pos = std::distance(cpuIDMap->id_map.begin(), it);
-            removes.push_back(pos);
-            break;
+    for (auto it = idSet.begin(); it != idSet.end(); it++) {
+        for (size_t i = 0; i < cpuIDMap->id_map.size(); i++) {
+            if (cpuIDMap->id_map[i] == *it) {
+                removes.push_back(i);
+                break;
+            }
         }
     }
 }
 
 size_t CpuIndexRemove(faiss::IndexIDMap *cpuIDMap, const faiss::IDSelector &sel)
 {
-    std::vector<faiss::Index::idx_t> removes;
+    std::vector<size_t> removes;
     if (auto rangeSel = dynamic_cast<const faiss::IDSelectorBatch *>(&sel)) {
         GetRemoveIDS(cpuIDMap, rangeSel->set, removes);
     } else if (auto rangeSel = dynamic_cast<const faiss::IDSelectorRange *>(&sel)) {
