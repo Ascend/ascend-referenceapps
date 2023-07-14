@@ -102,6 +102,7 @@ void GetRemoveIDS(faiss::IndexIDMap *cpuIDMap, const std::unordered_set<faiss::I
         if (idSet.find(*it) != idSet.end()) {
             auto pos = std::distance(cpuIDMap->id_map.begin(), it);
             removes.push_back(pos);
+            break;
         }
     }
 }
