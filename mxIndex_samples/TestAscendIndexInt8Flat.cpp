@@ -22,16 +22,15 @@
 #include <faiss/impl/AuxIndexStructures.h>
 #include <faiss/Clustering.h>
 #include <faiss/index_io.h>
-#include <algorithm>
 
 namespace {
     typedef std::unordered_map<int,float> recallMap;
-inline void GenerateCodes(int8_t *codes, int total, int dim, int seed = -1)
+inline void GenerateCodes(int8_t *codes, size_t total, size_t dim, int seed = -1)
 {
     std::default_random_engine e((seed > 0) ? seed : time(nullptr));
     std::uniform_real_distribution<float> rCode(0.0f, 1.0f);
-    for (int i = 0; i < total; i++) {
-        for (int j = 0; j < dim; j++) {
+    for (size_t i = 0; i < total; i++) {
+        for (size_t j = 0; j < dim; j++) {
             // uint8's max value is 255
             codes[i * dim + j] = static_cast<int8_t>(255 * rCode(e) - 128);
         }
