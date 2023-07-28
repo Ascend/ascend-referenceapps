@@ -10,7 +10,7 @@
 
 #### 安装教程
 
-1.  MindX SDK index [安装文档](https://www.hiascend.com/document/detail/zh/mind-sdk/300/featureretrieval/mxindexfrug/mxindexfrug_0001.html)
+1.  MindX SDK index [安装文档](https://www.hiascend.com/document/detail/zh/mind-sdk/50rc1/featureretrieval/mxindexfrug/mxindexfrug_0001.html)
 
 #### 测试用例说明
 | 用例名称 | 用例说明 |
