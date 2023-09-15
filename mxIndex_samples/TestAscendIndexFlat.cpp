@@ -60,7 +60,7 @@ template<class T> recallMap calRecall(std::vector<T> label, int64_t *gt, int que
 
     for(int i = 0; i < queryNum; i++){
         std::set<int> labelSet(label.begin() + i * k, label.begin() + i * k + k);
-        if (labelSet.size() != k) {
+        if (labelSet.size() != static_cast<size_t>(k)) {
             printf("current query have duplicated labels!!! \n");
         }
          for(int j = 0; j < k; j++){
@@ -102,10 +102,10 @@ inline int FastRand(void)
     return (g_seed >> rshiftNum) & FAST_RAND_MAX;
 }
 
-inline void Norm(float *data, int n, int dim)
+inline void Norm(float *data, size_t n, int dim)
 {
 #pragma omp parallelf for if(n > 100)
-    for (int i = 0; i < n; ++i){
+    for (size_t i = 0; i < n; ++i){
         float l2norm = 0;
         for (int j = 0; j < dim; ++j){
             l2norm += data[i * dim + j] * data[i * dim +j];
@@ -137,9 +137,9 @@ TEST(TestAscendIndexFlat, QPS)
 
     index.add(ntotal, data.data());
     {
-        int getTotal = 0;
+        size_t getTotal = 0;
         for (size_t i = 0; i < conf.deviceList.size(); i++) {
-            int tmpTotal = index.getBaseSize(conf.deviceList[i]);
+            size_t tmpTotal = index.getBaseSize(conf.deviceList[i]);
             getTotal += tmpTotal;
         }
         EXPECT_EQ(getTotal, ntotal);
